@@ -1,0 +1,10 @@
+../.idea/Radiologist_Gaze.iml
+../.idea/misc.xml
+../.idea/modules.xml
+../.idea/workspace.xml
+../animations/
+../annotations/
+*.pyc
+../gaze/
+../images/
+
