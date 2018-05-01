@@ -62,7 +62,7 @@ if __name__ == "__main__":
             x, y, centers, carol_subs, darshan_subs, diana_subs, img_sub_dict, image_names = pickle.load(inputs)
         print('Input Loaded')
 
-    sorted_cluster_center_imp = run_classifier(x, y, centers)  # returns array of size [350, 54]
+    sorted_cluster_center_imp = run_classifier(x, y[:, 7:10], centers)  # returns array of size [350, 54]
 
     if args.load_img_sub_count:
         with open('img_sub_count.pkl', 'rb') as inputs:

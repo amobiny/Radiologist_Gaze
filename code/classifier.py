@@ -44,11 +44,8 @@ def run_classifier(x, y, centers):
 
 
 def train_test_split(x, y):
-    all_idx = range(len(x))
-    train_idx = random.sample(all_idx, 220)
-    test_idx = [item for item in all_idx if item not in train_idx]
-    train_x = np.array(x)[train_idx]
-    test_x = np.array(x)[test_idx]
-    train_y = np.array(y)[train_idx]
-    test_y = np.array(y)[test_idx]
+    data = np.concatenate((x, y), axis=1)
+    np.random.shuffle(data)
+    train_x, train_y = data[:220, :args.n_cluster], data[:220, args.n_cluster:]
+    test_x, test_y = data[220:, :args.n_cluster], data[220:, args.n_cluster:]
     return train_x, train_y, test_x, test_y
