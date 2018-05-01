@@ -1,14 +1,10 @@
 import time
 # import win32api
 from scipy import spatial
-import os
 import operator
 import numpy as np
 import csv
 from sklearn.cluster import KMeans
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-from sklearn.ensemble import RandomForestClassifier
 from config import args
 
 
@@ -55,47 +51,6 @@ def gazeFilter(gaze_dict, distance, check_distance):
     return modifiedGazeDict
 
 
-def gazePlotter(data, name=None, flattened=True, save=False, output_path=None, plot=True):
-    x = []
-    y = []
-    if flattened:
-        for i in range(0, len(data) - 1, 2):
-            x.append(data[i])
-            y.append(data[i + 1])
-    else:
-        for point in data:
-            x.append(point[0])
-            y.append(point[1])
-    fig = plt.figure()
-    # plt.rcParams['animation.ffmpeg_path'] = 'C:/ffmpeg/ffmpeg.exe'
-    plt.xlim(0, 2560)
-    plt.ylim(1440, 0)
-    line, = plt.plot(x, y)
-
-    def animate(ii):
-        line.set_data(x[:ii + 1], y[:ii + 1])
-        return line
-
-    writer = animation.ImageMagickFileWriter()  # for ubuntu
-    # writers = animation.writers['ffmpeg']
-    # writer = writers(fps=30, metadata=dict(artist='Me'), bitrate=1800)
-    # writer = animation.FFMpegFileWriter(fps=15, metadata=dict(artist='Me'), bitrate=1800)
-    img = plt.imread(args.proj_dir + '/images/CXR129_IM-0189-1001.jpg')
-    plt.imshow(img)
-    ani = animation.FuncAnimation(fig, animate, frames=50, interval=100)
-    if save is True:
-        if not os.path.exists(output_path + str(name.split('/')[0])):
-            os.makedirs(output_path + str(name.split('/')[0]))
-        ani.save(output_path + str(name) + '.mp4', writer='ffmpeg', fps=15)
-    if plot is True:
-        plt.show()
-
-
-def rawSubPlotter(filteredGaze, imgName, output_path, save=False, plot=True, name=None):
-    gaze_ = filteredGaze[imgName]
-    gazePlotter(gaze_, flattened=False, save=save, output_path=output_path, plot=plot, name=name)
-
-
 def gazeCluster(gazeSub, n_clust, init_centers, n_iter, n_init, calc_centres=False):
     print('go for clustering')
     clusterLabels = KMeans(n_clusters=n_clust, init=init_centers, random_state=0,
@@ -113,7 +68,7 @@ def gazeCluster(gazeSub, n_clust, init_centers, n_iter, n_init, calc_centres=Fal
     return result
 
 
-def input_generator(gaze_dict, subseq_len, n_cluster, csv_path, predict):
+def input_generator(gaze_dict, subseq_len, n_cluster, csv_path):
     gazeSub, gaze_sub_dict, carol_subs, darshan_subs, dians_subs = [], {}, [], [], []
     for img in gaze_dict:
         gaze = gaze_dict[img]
@@ -154,3 +109,20 @@ def input_generator(gaze_dict, subseq_len, n_cluster, csv_path, predict):
         x = np.concatenate((x, np.array([i / np.sum(x_) for i in x_]).reshape(1, args.n_cluster)), axis=0)
         y = np.concatenate((y, np.array([int(row[i]) for i in range(1, 16)]).reshape(1, 15)), axis=0)
     return x, y, centres, carol_subs, darshan_subs, dians_subs, gaze_sub_dict, image_names
+
+
+def get_cluster_count(imp_centers, subs):
+    """
+    counts the number of sub-sequences in 'subs' which belongs to each cluster
+    :param imp_centers: numpy array of size [n_cluster, subseq_len*2]   (350, 54)
+                        first dimension is sorted based on the feature importance (in ascending order)
+    :param subs: list of all sub-sequences; each sub-sequence is an array of size (subseq_len*2,)
+    :return:
+    """
+    center_tree = spatial.KDTree(imp_centers)
+    cluster_count = {i: 0 for i in range(len(imp_centers))}
+    for sub in subs:
+        cluster_count[center_tree.query(sub)[1]] += 1
+    cluster_count = cluster_count.items()
+    # cluster_sorted = sorted(cluster_count.items(), key=operator.itemgetter(1), reverse=True)
+    return cluster_count

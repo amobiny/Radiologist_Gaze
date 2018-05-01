@@ -1,7 +1,9 @@
 import random
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import precision_recall_curve
 from config import args
+import matplotlib.pyplot as plt
 
 
 def classifier_model(x_input, y_input, n_estimators, max_depth, max_features, feat_importance=False):
@@ -12,12 +14,14 @@ def classifier_model(x_input, y_input, n_estimators, max_depth, max_features, fe
     x_train, y_train, x_test, y_test = train_test_split(x_input, y_input)
     classifier.fit(x_train, y_train)
     result = classifier.predict(x_test)
+    y_prob_test = classifier.predict_proba(x_test)
     # accuracy = np.sum(np.equal(np.argmax(result, 1), np.argmax(y_test, 1)))/np.float(y_test.shape[0])
     accuracy = np.sum(np.equal(np.reshape(result, (-1, 1)),
                                np.reshape(y_test, (-1, 1)))) / np.float(result.size)
     if feat_importance:
         features_imp = classifier.feature_importances_
         print('Classifier Trained & Feature importance generated')
+        # plot_precision_recall(y_test, y_prob_test)
         return accuracy, features_imp
     else:
         return accuracy
@@ -49,3 +53,20 @@ def train_test_split(x, y):
     train_x, train_y = data[:220, :args.n_cluster], data[:220, args.n_cluster:]
     test_x, test_y = data[220:, :args.n_cluster], data[220:, args.n_cluster:]
     return train_x, train_y, test_x, test_y
+
+
+def plot_precision_recall(y, y_prob):
+    Precision1, Recall1, thresholds = precision_recall_curve(y, y_prob[:, 0])
+    Precision2, Recall2, thresholds = precision_recall_curve(y, y_prob[:, 1])
+    fig = plt.figure()
+    fig.set_size_inches(12, 12)
+    ax1 = fig.add_subplot(1, 1, 1)
+    plt.plot(Recall1, Precision1, lw=2, label='1st')
+    plt.plot(Recall2, Precision2, lw=2, label='2nd')
+    ax1.set_xlabel('Recall', size=18)
+    ax1.set_ylabel('Precision', size=18)
+    ax1.tick_params(labelsize=18)
+    plt.ylim([0.0, 1.05])
+    plt.xlim([0.0, 1.0])
+    plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05), fancybox=True, shadow=True)
+    fig.savefig(args.path_to_videos + '/pr.png')
