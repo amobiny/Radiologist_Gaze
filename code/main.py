@@ -43,7 +43,7 @@ else:
 
 
 x, y = pick_radiologist(x, y, image_names, radiologist_name='CAROL')
-sorted_cluster_center_imp = run_classifier(x, y[:, 4], centers)
+sorted_cluster_center_imp = run_classifier(x, y[:, 4], centers, split=True)
 # returns array of size (350, 54)
 
 carol_cluster_count = get_cluster_count(sorted_cluster_center_imp, carol_subs)  # list of 350 tuples

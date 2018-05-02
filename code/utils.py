@@ -133,7 +133,7 @@ def pick_radiologist(x, y, image_names, radiologist_name='CAROL'):
     for i in range(len(image_names)):
         if image_names[i].split('_')[0].upper() == radiologist_name:
             new_x = np.concatenate((new_x, x[i].reshape(1, args.n_cluster)), axis=0)
-            new_y = np.concatenate((new_y, y[i].reshape(1, args.n_cluster)), axis=0)
+            new_y = np.concatenate((new_y, y[i].reshape(1, y.shape[-1])), axis=0)
     return new_x, new_y
 
 

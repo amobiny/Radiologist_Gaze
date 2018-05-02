@@ -6,12 +6,16 @@ from config import args
 import matplotlib.pyplot as plt
 
 
-def classifier_model(x_input, y_input, n_estimators, max_depth, max_features, feat_importance=False):
+def classifier_model(x_input, y_input, n_estimators, max_depth, max_features, feat_importance=False, split=True):
     classifier = RandomForestClassifier(n_estimators=n_estimators,
                                         max_depth=max_depth,
                                         oob_score=True,
                                         max_features=max_features)
-    x_train, y_train, x_test, y_test = train_test_split(x_input, y_input)
+    if split:
+        x_train, y_train, x_test, y_test = train_test_split(x_input, y_input)
+    else:
+        x_test = x_train = x_input
+        y_test = y_train = y_input
     classifier.fit(x_train, y_train)
     result = classifier.predict(x_test)
     y_prob_test = classifier.predict_proba(x_test)
@@ -27,10 +31,10 @@ def classifier_model(x_input, y_input, n_estimators, max_depth, max_features, fe
         return accuracy
 
 
-def multi_run(x, y, count):
+def multi_run(x, y, count, split=True):
     accur = []
     for i in range(count):
-        acc = classifier_model(x, y, args.n_estimators, args.max_depth, args.max_features)
+        acc = classifier_model(x, y, args.n_estimators, args.max_depth, args.max_features, split=split)
         accur.append(acc)
         print('Classifier Trained, run #{}'.format(i))
     mean_acc = np.mean(np.array(accur))
@@ -38,20 +42,26 @@ def multi_run(x, y, count):
     return mean_acc, std_acc
 
 
-def run_classifier(x, y, centers):
-    mean_acc, std_acc = multi_run(x, y, args.num_run)
+def run_classifier(x, y, centers, split=True):
+    mean_acc, std_acc = multi_run(x, y, args.num_run, split=split)
     print('Average accuracy over {0} runs: {1:.02%}+-({2:.2f})'.format(args.num_run, mean_acc, std_acc*100))
-    acc, feat_imp = classifier_model(x, y, args.n_estimators, args.max_depth, args.max_features, feat_importance=True)
+    acc, feat_imp = classifier_model(x, y, args.n_estimators, args.max_depth, args.max_features,
+                                     feat_importance=True, split=split)
     imp_feat, imp_feat_idx = np.sort(feat_imp), np.argsort(feat_imp)
     imp_centers = centers[imp_feat_idx]
     return imp_centers
 
 
 def train_test_split(x, y):
-    data = np.concatenate((x, y.reshape(264, -1)), axis=1)
+    num_imgs = y.shape[0]
+    if num_imgs == 264:
+        num_train = 220
+    else:
+        num_train = int(np.floor(0.8 * num_imgs))
+    data = np.concatenate((x, y.reshape(num_imgs, -1)), axis=1)
     np.random.shuffle(data)
-    train_x, train_y = data[:220, :args.n_cluster], data[:220, args.n_cluster:]
-    test_x, test_y = data[220:, :args.n_cluster], data[220:, args.n_cluster:]
+    train_x, train_y = data[:num_train, :args.n_cluster], data[:num_train, args.n_cluster:]
+    test_x, test_y = data[num_train:, :args.n_cluster], data[num_train:, args.n_cluster:]
     return train_x, train_y, test_x, test_y
 
 
