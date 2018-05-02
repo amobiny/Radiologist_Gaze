@@ -37,14 +37,17 @@ else:
         x, y, centers, carol_subs, darshan_subs, diana_subs, img_sub_dict, image_names = pickle.load(inputs)
     print('Input Loaded')
 
-# 0.Cardio, 1.Infilt, 2.Nodule, 3. Normal, 4.PlurEff, 5.Pneumtrx, 6.Carol, 7.Darshan, 8.Diana
+# 0.Cardio, 1.Infilt, 2.Nodule, 3.Normal, 4.PlurEff, 5.Pneumtrx, 6.Carol, 7.Darshan, 8.Diana
 # 9.Cardio, 10.Infilt, 11.Nodule, 12. Normal, 13.PlurEff, 14.Pneumtrx,
 # sorted_cluster_center_imp = run_classifier(x, np.reshape(np.abs(y[:, 0]-y[:, 0+9]), (264, -1)), centers)
-sorted_cluster_center_imp = run_classifier(x, y[:, 6:9], centers)
+
+
+x, y = pick_radiologist(x, y, image_names, radiologist_name='CAROL')
+sorted_cluster_center_imp = run_classifier(x, y[:, 4], centers)
 # returns array of size (350, 54)
 
 carol_cluster_count = get_cluster_count(sorted_cluster_center_imp, carol_subs)  # list of 350 tuples
-gaze_plot_save(carol_cluster_count, sorted_cluster_center_imp, num=args.numvid, path='radiologist_most_important/')
+gaze_plot_save(carol_cluster_count, sorted_cluster_center_imp, num=args.numvid, path='PlurEff_most_important/')
 darshan_cluster_count = get_cluster_count(sorted_cluster_center_imp, darshan_subs)  # list of 350 tuples
 # gaze_plot_save(darshan_cluster_count, sorted_cluster_center_imp, num=args.numvid, path='darshan_nodule_most_important/')
 diana_cluster_count = get_cluster_count(sorted_cluster_center_imp, diana_subs)  # list of 350 tuples
@@ -81,7 +84,9 @@ print('Percentage: {}'.format(np.sum([i/9261.*100 for j, i in darshan_cluster_co
 
 
 print('**********************Diana****************************')
-print([i for j, i in darshan_cluster_count][-10:])
+print([i for j, i in diana_cluster_count][-10:])
 print('Sum:{}'.format(np.sum([i for j, i in diana_cluster_count][-10:])))
 print('Per image: {}'.format(np.sum([i/102. for j, i in diana_cluster_count][-10:])))
 print('Percentage: {}'.format(np.sum([i/39966.*100 for j, i in diana_cluster_count][-10:])))
+
+print()

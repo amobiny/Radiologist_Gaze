@@ -21,7 +21,7 @@ def classifier_model(x_input, y_input, n_estimators, max_depth, max_features, fe
     if feat_importance:
         features_imp = classifier.feature_importances_
         print('Classifier Trained & Feature importance generated')
-        # plot_precision_recall(y_test, y_prob_test)
+        plot_precision_recall(y_test, y_prob_test)
         return accuracy, features_imp
     else:
         return accuracy

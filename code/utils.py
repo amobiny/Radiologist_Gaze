@@ -126,3 +126,16 @@ def get_cluster_count(imp_centers, subs):
     cluster_count = cluster_count.items()
     # cluster_sorted = sorted(cluster_count.items(), key=operator.itemgetter(1), reverse=True)
     return cluster_count
+
+
+def pick_radiologist(x, y, image_names, radiologist_name='CAROL'):
+    new_x, new_y = np.zeros((0, args.n_cluster)), np.zeros((0, y.shape[-1]))
+    for i in range(len(image_names)):
+        if image_names[i].split('_')[0].upper() == radiologist_name:
+            new_x = np.concatenate((new_x, x[i].reshape(1, args.n_cluster)), axis=0)
+            new_y = np.concatenate((new_y, y[i].reshape(1, args.n_cluster)), axis=0)
+    return new_x, new_y
+
+
+
+
