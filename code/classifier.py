@@ -21,7 +21,7 @@ def classifier_model(x_input, y_input, n_estimators, max_depth, max_features, fe
     if feat_importance:
         features_imp = classifier.feature_importances_
         print('Classifier Trained & Feature importance generated')
-        # plot_precision_recall(y_test, y_prob_test)
+        plot_precision_recall(y_test, y_prob_test)
         return accuracy, features_imp
     else:
         return accuracy
@@ -48,7 +48,7 @@ def run_classifier(x, y, centers):
 
 
 def train_test_split(x, y):
-    data = np.concatenate((x, y), axis=1)
+    data = np.concatenate((x, y.reshape(264, -1)), axis=1)
     np.random.shuffle(data)
     train_x, train_y = data[:220, :args.n_cluster], data[:220, args.n_cluster:]
     test_x, test_y = data[220:, :args.n_cluster], data[220:, args.n_cluster:]

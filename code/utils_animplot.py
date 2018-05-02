@@ -41,8 +41,8 @@ def gazePlotter(data, name=None, flattened=True, save=False, output_path=None, p
 
 
 def gaze_plot_save(cluster_sorted, imp_centers, num=5, path='carol_most_important/'):
-    for i in range(num):
-        gazePlotter(imp_centers[cluster_sorted[i][0]], name=path + str(i), flattened=True,
+    for i in range(1, num+1):
+        gazePlotter(imp_centers[cluster_sorted[-i][0]], name=path + str(i), flattened=True,
                     save=True, output_path=args.path_to_videos, plot=False)
         print('Creating and Saving Animation.....')
 

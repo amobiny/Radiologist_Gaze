@@ -30,38 +30,47 @@ if args.prepare_data:
                                                                                         n_cluster=args.n_cluster,
                                                                                         csv_path=args.label_csv)
     with open('Data.pkl', 'wb') as output:
-        pickle.dump([x, y, centers, carol_subs, darshan_subs, diana_subs, img_sub_dict, image_names], output, -1)
+        pickle.dump([x, y, centers, carol_subs, darshan_subs, diana_subs], output, -1)
     print('Input Generated and Saved')
 else:
     with open('Data.pkl', 'rb') as inputs:
         x, y, centers, carol_subs, darshan_subs, diana_subs, img_sub_dict, image_names = pickle.load(inputs)
     print('Input Loaded')
 
-# 1.Cardio, 2.Infilt, 3.Nodule, 4. Normal, 5.PlurEff, 6.Pneumtrx, 7.Carol, 8.Darshan, 9.Diana
-# 10.Cardio, 11.Infilt, 12.Nodule, 13. Normal, 14.PlurEff, 15.Pneumtrx,
-# sorted_cluster_center_imp = run_classifier(x, np.reshape(np.abs(y[:, 1]-y[:, 1+9]), (264, -1)), centers)
-sorted_cluster_center_imp = run_classifier(x, y[:, 7:10], centers)
+# 0.Cardio, 1.Infilt, 2.Nodule, 3. Normal, 4.PlurEff, 5.Pneumtrx, 6.Carol, 7.Darshan, 8.Diana
+# 9.Cardio, 10.Infilt, 11.Nodule, 12. Normal, 13.PlurEff, 14.Pneumtrx,
+sorted_cluster_center_imp = run_classifier(x, np.reshape(np.abs(y[:, 2]-y[:, 2+9]), (264, -1)), centers)
+# sorted_cluster_center_imp = run_classifier(x, y[:, 0], centers)
 # returns array of size (350, 54)
 
 carol_cluster_count = get_cluster_count(sorted_cluster_center_imp, carol_subs)  # list of 350 tuples
-gaze_plot_save(carol_cluster_count, sorted_cluster_center_imp, num=args.numvid, path='carol_most_important/')
+gaze_plot_save(carol_cluster_count, sorted_cluster_center_imp, num=args.numvid, path='error_nodule_most_important/')
 darshan_cluster_count = get_cluster_count(sorted_cluster_center_imp, darshan_subs)  # list of 350 tuples
-gaze_plot_save(darshan_cluster_count, sorted_cluster_center_imp, num=args.numvid, path='darshan_most_important/')
+# gaze_plot_save(darshan_cluster_count, sorted_cluster_center_imp, num=args.numvid, path='darshan_nodule_most_important/')
 diana_cluster_count = get_cluster_count(sorted_cluster_center_imp, diana_subs)  # list of 350 tuples
-gaze_plot_save(diana_cluster_count, sorted_cluster_center_imp, num=args.numvid, path='diana_most_important/')
+# gaze_plot_save(diana_cluster_count, sorted_cluster_center_imp, num=args.numvid, path='diana_nodule_most_important/')
 
-if args.load_img_sub_count:
-    with open('img_sub_count.pkl', 'rb') as inputs:
-        img_sub_count_dict = pickle.load(inputs)
-else:
-    print('Preparing the dictionary of sub-sequence counts for each image-radiologist pair')
-    img_sub_count_dict = {}
-    for key in img_sub_dict.keys():
-        print(key)
-        img_sub_count_dict[key] = get_cluster_count(sorted_cluster_center_imp, img_sub_dict[key])
-    with open('img_sub_count.pkl', 'wb') as output:
-        pickle.dump(img_sub_count_dict, output, -1)
+print()
+# if args.load_img_sub_count:
+#     with open('img_sub_count.pkl', 'rb') as inputs:
+#         img_sub_count_dict = pickle.load(inputs)
+# else:
+#     print('Preparing the dictionary of sub-sequence counts for each image-radiologist pair')
+#     img_sub_count_dict = {}
+#     for key in img_sub_dict.keys():
+#         print(key)
+#         img_sub_count_dict[key] = get_cluster_count(sorted_cluster_center_imp, img_sub_dict[key])
+#     with open('img_sub_count.pkl', 'wb') as output:
+#         pickle.dump(img_sub_count_dict, output, -1)
+#
+# all_subs = carol_subs + darshan_subs + diana_subs
+# sorted_all_cluster_count = get_cluster_count(sorted_cluster_center_imp, all_subs)  # list of 350 tuples
+# gaze_plot_save(sorted_all_cluster_count, sorted_cluster_center_imp, num=args.vidnum, path='all_most_important/')
 
-all_subs = carol_subs + darshan_subs + diana_subs
-sorted_all_cluster_count = get_cluster_count(sorted_cluster_center_imp, all_subs)  # list of 350 tuples
-gaze_plot_save(sorted_all_cluster_count, sorted_cluster_center_imp, num=args.vidnum, path='all_most_important/')
+
+np.sum([i/22028.*100 for j, i in carol_cluster_count][-10:])
+np.sum([i/9261.*100 for j, i in darshan_cluster_count][-10:])
+np.sum([i/39966.*100 for j, i in diana_cluster_count][-10:])
+
+
+
