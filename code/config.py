@@ -33,6 +33,6 @@ parser.add_argument('--max_features', default=0.11, help='#features to consider 
 parser.add_argument('--num_run', default=10, help='number of times running the classifier to get the avg. accuracy')
 
 # others
-parser.add_argument('--numvid', default=5, help='#animation videos to be saved')
+parser.add_argument('--numvid', default=10, help='#animation videos to be saved')
 
 args = parser.parse_args()

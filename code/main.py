@@ -39,12 +39,12 @@ else:
 
 # 0.Cardio, 1.Infilt, 2.Nodule, 3. Normal, 4.PlurEff, 5.Pneumtrx, 6.Carol, 7.Darshan, 8.Diana
 # 9.Cardio, 10.Infilt, 11.Nodule, 12. Normal, 13.PlurEff, 14.Pneumtrx,
-sorted_cluster_center_imp = run_classifier(x, np.reshape(np.abs(y[:, 2]-y[:, 2+9]), (264, -1)), centers)
-# sorted_cluster_center_imp = run_classifier(x, y[:, 0], centers)
+# sorted_cluster_center_imp = run_classifier(x, np.reshape(np.abs(y[:, 0]-y[:, 0+9]), (264, -1)), centers)
+sorted_cluster_center_imp = run_classifier(x, y[:, 6:9], centers)
 # returns array of size (350, 54)
 
 carol_cluster_count = get_cluster_count(sorted_cluster_center_imp, carol_subs)  # list of 350 tuples
-gaze_plot_save(carol_cluster_count, sorted_cluster_center_imp, num=args.numvid, path='error_nodule_most_important/')
+gaze_plot_save(carol_cluster_count, sorted_cluster_center_imp, num=args.numvid, path='radiologist_most_important/')
 darshan_cluster_count = get_cluster_count(sorted_cluster_center_imp, darshan_subs)  # list of 350 tuples
 # gaze_plot_save(darshan_cluster_count, sorted_cluster_center_imp, num=args.numvid, path='darshan_nodule_most_important/')
 diana_cluster_count = get_cluster_count(sorted_cluster_center_imp, diana_subs)  # list of 350 tuples
@@ -67,10 +67,21 @@ print()
 # sorted_all_cluster_count = get_cluster_count(sorted_cluster_center_imp, all_subs)  # list of 350 tuples
 # gaze_plot_save(sorted_all_cluster_count, sorted_cluster_center_imp, num=args.vidnum, path='all_most_important/')
 
+print('**********************Carol****************************')
+print([i for j, i in carol_cluster_count][-10:])
+print('Sum:{}'.format(np.sum([i for j, i in carol_cluster_count][-10:])))
+print('Per image: {}'.format(np.sum([i/102. for j, i in carol_cluster_count][-10:])))
+print('Percentage: {}'.format(np.sum([i/22028.*100 for j, i in carol_cluster_count][-10:])))
 
-np.sum([i/22028.*100 for j, i in carol_cluster_count][-10:])
-np.sum([i/9261.*100 for j, i in darshan_cluster_count][-10:])
-np.sum([i/39966.*100 for j, i in diana_cluster_count][-10:])
+print('**********************Darshan****************************')
+print([i for j, i in darshan_cluster_count][-10:])
+print('Sum:{}'.format(np.sum([i for j, i in darshan_cluster_count][-10:])))
+print('Per image: {}'.format(np.sum([i/60. for j, i in darshan_cluster_count][-10:])))
+print('Percentage: {}'.format(np.sum([i/9261.*100 for j, i in darshan_cluster_count][-10:])))
 
 
-
+print('**********************Diana****************************')
+print([i for j, i in darshan_cluster_count][-10:])
+print('Sum:{}'.format(np.sum([i for j, i in diana_cluster_count][-10:])))
+print('Per image: {}'.format(np.sum([i/102. for j, i in diana_cluster_count][-10:])))
+print('Percentage: {}'.format(np.sum([i/39966.*100 for j, i in diana_cluster_count][-10:])))
