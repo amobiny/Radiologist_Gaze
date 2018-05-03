@@ -26,7 +26,7 @@ def classifier_model(x_input, y_input, n_estimators, max_depth, max_features, fe
         features_imp = classifier.feature_importances_
         print('Classifier Trained & Feature importance generated')
         plot_precision_recall(y_test, y_prob_test)
-        return accuracy, features_imp
+        return accuracy, features_imp, classifier
     else:
         return accuracy
 
@@ -44,12 +44,12 @@ def multi_run(x, y, count, split=True):
 
 def run_classifier(x, y, centers, split=True):
     mean_acc, std_acc = multi_run(x, y, args.num_run, split=split)
-    print('Average accuracy over {0} runs: {1:.02%}+-({2:.2f})'.format(args.num_run, mean_acc, std_acc*100))
-    acc, feat_imp = classifier_model(x, y, args.n_estimators, args.max_depth, args.max_features,
-                                     feat_importance=True, split=split)
+    print('Average accuracy over {0} runs: {1:.02%}+-({2:.2f})'.format(args.num_run, mean_acc, std_acc * 100))
+    acc, feat_imp, classifier = classifier_model(x, y, args.n_estimators, args.max_depth, args.max_features,
+                                                 feat_importance=True, split=split)
     imp_feat, imp_feat_idx = np.sort(feat_imp), np.argsort(feat_imp)
     imp_centers = centers[imp_feat_idx]
-    return imp_centers
+    return imp_centers, classifier
 
 
 def train_test_split(x, y):
