@@ -6,8 +6,8 @@ class Config(object):
 
     # glimpse network
     convert_ratio       = 0.8
-    original_size       = 28
-    new_size            = 28
+    original_size       = 256
+    new_size            = 256
     num_channels        = 1  # remove later
 
     glimpse_size        = 12

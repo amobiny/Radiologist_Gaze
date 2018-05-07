@@ -115,23 +115,22 @@ class RAM(object):
         with tf.variable_scope('classification'):
             w_logit = weight_variable((self.config.cell_output_size, self.config.num_classes))
             b_logit = bias_variable((self.config.num_classes,))
-
             self.logits = tf.nn.xw_plus_b(self.output, w_logit, b_logit)
-            self.softmax = tf.nn.softmax(self.logits)  # [batch_size x n_classes]
+            # self.softmax = tf.nn.sigmoid(self.logits)  # [batch_size x n_classes]
 
             # class probabilities for each glimpse
             self.class_prob_arr = []
 
             for op in self.outputs:
                 self.glimpse_logit = tf.stop_gradient(tf.nn.xw_plus_b(op, w_logit, b_logit))
-                self.class_prob_arr.append(tf.nn.softmax(self.glimpse_logit))
+                self.class_prob_arr.append(tf.nn.sigmoid(self.glimpse_logit))
 
             self.class_prob_arr = tf.stack(self.class_prob_arr, axis=1)
             # [batch_size x num_glimpses x n_classes]
         # Losses/reward
 
         # cross-entropy
-        xent = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logits, labels=self.labels_ph)
+        xent = tf.nn.sigmoid_cross_entropy_with_logits(labels=self.labels_ph, logits=self.logits)
         self.xent = tf.reduce_mean(xent)
         self.pred_labels = tf.argmax(self.logits, 1)
 
@@ -164,24 +163,21 @@ class RAM(object):
         """Set up optimzation operators."""
 
         # learning rate
-        self.global_step = tf.get_variable(
-            'global_step', [], initializer=tf.constant_initializer(0), trainable=False)
+        self.global_step = tf.get_variable('global_step', [], initializer=tf.constant_initializer(0), trainable=False)
 
         self.training_steps_per_epoch = self.config.N // self.config.batch_size
         # print 'Training steps / epoch {}'.format(self.training_steps_per_epoch)
 
         self.starter_learning_rate = self.config.lr_start
         # decay per training epoch
-        self.learning_rate = tf.train.exponential_decay(
-            self.starter_learning_rate,
-            self.global_step,
-            self.training_steps_per_epoch,
-            0.97,
-            staircase=True)
+        self.learning_rate = tf.train.exponential_decay(self.starter_learning_rate,
+                                                        self.global_step,
+                                                        self.training_steps_per_epoch,
+                                                        0.97,
+                                                        staircase=True)
         self.learning_rate = tf.maximum(self.learning_rate, self.config.lr_min)
         self.optimizer = tf.train.AdamOptimizer(self.learning_rate)
-        self.train_op = self.optimizer.apply_gradients(zip(self.grads, self.var_list),
-                                                       global_step=self.global_step)
+        self.train_op = self.optimizer.apply_gradients(zip(self.grads, self.var_list), global_step=self.global_step)
 
     def setup_logger(self):
         """Creates log directory and initializes logger."""

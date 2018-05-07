@@ -18,6 +18,7 @@ from RAM import RAM
 from config import Config
 
 from tensorflow.examples.tutorials.mnist import input_data
+from read_chestxray import chest_xray
 
 if __name__ == '__main__':
     a='./experiments/task=org28x28_model=ram_conv=True_n_glimpses=6_fovea=12x12_std=0.11_111947_context=True_lr=0.001-1e-05_p_labels=1/'
@@ -84,13 +85,15 @@ if __name__ == '__main__':
     # ------------------------------
 
     # data
-    mnist = input_data.read_data_sets('MNIST_data', one_hot=False)
+    # mnist = input_data.read_data_sets('MNIST_data', one_hot=False)
+    data = chest_xray(config)
 
     # init model
     config.num_glimpses = FLAGS.num_glimpses
     config.n_patches = FLAGS.n_patches
     config.sensor_size = config.glimpse_size ** 2 * config.n_patches
-    config.N = mnist.train.num_examples  # number of training examples
+    # config.N = mnist.train.num_examples  # number of training examples
+    config.N = data.x_train.shape[0]  # number of training examples
 
     if FLAGS.model == 'ram':
         print '\n\n\nTraining RAM\n\n\n'
@@ -114,6 +117,6 @@ if __name__ == '__main__':
     model.count_params()
 
     # train
-    model.train(chest_xray, FLAGS.task)
+    model.train(data, FLAGS.task)
 
     model.evaluate(data=mnist, task=FLAGS.task)
