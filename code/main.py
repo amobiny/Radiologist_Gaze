@@ -37,30 +37,35 @@ else:
         x, y, centers, carol_subs, darshan_subs, diana_subs, img_sub_dict, image_names = pickle.load(inputs)
     print('Input Loaded')
 
+# condition_num = 0
+
 # 0.Cardio, 1.Infilt, 2.Nodule, 3.Normal, 4.PlurEff, 5.Pneumtrx, 6.Carol, 7.Darshan, 8.Diana
 # 9.Cardio, 10.Infilt, 11.Nodule, 12. Normal, 13.PlurEff, 14.Pneumtrx,
-# sorted_cluster_center_imp = run_classifier(x, np.reshape(np.abs(y[:, 0]-y[:, 0+9]), (264, -1)), centers)
+# sorted_cluster_center_imp = run_classifier(x, np.reshape(np.abs(y[:, condition_num]-y[:, condition_num+9]), (264, -1)), centers)
 
-condition_num = 2
-x_new, y_new = pick_radiologist(x, y, image_names, radiologist_name='CAROL')
-sorted_cluster_center_imp, classifier = run_classifier(x_new, y_new[:, condition_num], centers, split=True)
+# x_new, y_new = x, y
+x_new, y_new = pick_radiologist(x, y, image_names, radiologist_name='DARSHAN')
+sorted_cluster_center_imp, classifier, percentile = run_classifier(x_new, y_new[:, :6], centers, split=True)
 # returns array of size (350, 54)
 
 carol_cluster_count = get_cluster_count(sorted_cluster_center_imp, carol_subs)  # list of 350 tuples
-gaze_plot_save(carol_cluster_count, sorted_cluster_center_imp, num=args.numvid, path='carol_nodule_most_important/')
-darshan_cluster_count = get_cluster_count(sorted_cluster_center_imp, darshan_subs)  # list of 350 tuples
+save_histogram(carol_cluster_count, percentile, name='/darshan_all_abnorms_most_important2.png')
+gaze_plot_save(carol_cluster_count, sorted_cluster_center_imp, num=args.numvid, path='darshan_all_abnorms_most_important2/')
+# darshan_cluster_count = get_cluster_count(sorted_cluster_center_imp, darshan_subs)  # list of 350 tuples
 # gaze_plot_save(darshan_cluster_count, sorted_cluster_center_imp, num=args.numvid, path='darshan_nodule_most_important/')
-diana_cluster_count = get_cluster_count(sorted_cluster_center_imp, diana_subs)  # list of 350 tuples
+# diana_cluster_count = get_cluster_count(sorted_cluster_center_imp, diana_subs)  # list of 350 tuples
 # gaze_plot_save(diana_cluster_count, sorted_cluster_center_imp, num=args.numvid, path='diana_nodule_most_important/')
 
 
-a1, b1 = pick_radiologist(x, y, image_names, radiologist_name='DARSHAN')
-c1 = classifier.score(a1, b1[:, condition_num])
-print('accuracy: {0:.02%}'.format(c1))
-a2, b2 = pick_radiologist(x, y, image_names, radiologist_name='DIANA')
-c2 = classifier.score(a2, b2[:, condition_num])
-print('accuracy: {0:.02%}'.format(c2))
-print()
+
+
+# a1, b1 = pick_radiologist(x, y, image_names, radiologist_name='CAROL')
+# c1 = classifier.score(a1, b1[:, condition_num])
+# print('accuracy: {0:.02%}'.format(c1))
+# a2, b2 = pick_radiologist(x, y, image_names, radiologist_name='DARSHAN')
+# c2 = classifier.score(a2, b2[:, condition_num])
+# print('accuracy: {0:.02%}'.format(c2))
+# print()
 # if args.load_img_sub_count:
 #     with open('img_sub_count.pkl', 'rb') as inputs:
 #         img_sub_count_dict = pickle.load(inputs)

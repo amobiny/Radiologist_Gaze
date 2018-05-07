@@ -25,7 +25,7 @@ def classifier_model(x_input, y_input, n_estimators, max_depth, max_features, fe
     if feat_importance:
         features_imp = classifier.feature_importances_
         print('Classifier Trained & Feature importance generated')
-        plot_precision_recall(y_test, y_prob_test)
+        # plot_precision_recall(y_test, y_prob_test)
         return accuracy, features_imp, classifier
     else:
         return accuracy
@@ -49,7 +49,9 @@ def run_classifier(x, y, centers, split=True):
                                                  feat_importance=True, split=split)
     imp_feat, imp_feat_idx = np.sort(feat_imp), np.argsort(feat_imp)
     imp_centers = centers[imp_feat_idx]
-    return imp_centers, classifier
+    cumsum_feat = np.cumsum(np.flip(imp_feat, 0))
+    percentile = (np.argmax(cumsum_feat > 0.5), np.argmax(cumsum_feat > 0.7), np.argmax(cumsum_feat > 0.9))
+    return imp_centers, classifier, percentile
 
 
 def train_test_split(x, y):

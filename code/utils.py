@@ -6,6 +6,7 @@ import numpy as np
 import csv
 from sklearn.cluster import KMeans
 from config import args
+import matplotlib.pyplot as plt
 
 
 def setCursor(data):
@@ -114,6 +115,7 @@ def input_generator(gaze_dict, subseq_len, n_cluster, csv_path):
 def get_cluster_count(imp_centers, subs):
     """
     counts the number of sub-sequences in 'subs' which belongs to each cluster
+    sorted based on the importance (in ascending order)
     :param imp_centers: numpy array of size [n_cluster, subseq_len*2]   (350, 54)
                         first dimension is sorted based on the feature importance (in ascending order)
     :param subs: list of all sub-sequences; each sub-sequence is an array of size (subseq_len*2,)
@@ -123,8 +125,8 @@ def get_cluster_count(imp_centers, subs):
     cluster_count = {i: 0 for i in range(len(imp_centers))}
     for sub in subs:
         cluster_count[center_tree.query(sub)[1]] += 1
+    cluster_count_freq = sorted(cluster_count.items(), key=operator.itemgetter(1), reverse=True)
     cluster_count = cluster_count.items()
-    # cluster_sorted = sorted(cluster_count.items(), key=operator.itemgetter(1), reverse=True)
     return cluster_count
 
 
@@ -136,6 +138,25 @@ def pick_radiologist(x, y, image_names, radiologist_name='CAROL'):
             new_y = np.concatenate((new_y, y[i].reshape(1, y.shape[-1])), axis=0)
     return new_x, new_y
 
+
+def save_histogram(cluster_count, per, name):
+    col = ['hotpink', 'magenta', 'darkmagenta']
+    lab = ['%50', '%70', '%90']
+    a = np.flip(np.array([count for imp, count in cluster_count]), 0)
+    y_max = np.max(a) + 10
+    fig = plt.figure()
+    fig.set_size_inches(15, 8)
+    ax1 = fig.add_subplot(1, 1, 1)
+    plt.bar(range(args.n_cluster), a)
+    for ii in range(len(per)):
+        plt.axvline(x=per[ii], color=col[ii], linewidth=2, linestyle='--', label=lab[ii])
+    plt.legend()
+    ax1.set_xlabel('Importance', size=18)
+    ax1.set_ylabel('Frequency', size=18)
+    ax1.tick_params(labelsize=18)
+    plt.ylim([0.0, y_max])
+    plt.xlim([0.0, args.n_cluster+1])
+    fig.savefig(args.path_to_videos + name)
 
 
 
