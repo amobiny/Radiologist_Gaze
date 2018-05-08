@@ -131,10 +131,13 @@ class RAM(object):
         # Losses/reward
 
         # cross-entropy
-        xent = tf.nn.sigmoid_cross_entropy_with_logits(labels=self.labels_ph, logits=self.logits)
-        xent = tf.nn.weighted_cross_entropy_with_logits(labels=self.labels_ph, logits=self.logits, pos_weight=)
+        if self.config.weighted_loss:
+            xent = tf.nn.weighted_cross_entropy_with_logits(labels=self.labels_ph, logits=self.logits,
+                                                            pos_weight=self.config.w_plus)
+        else:
+            xent = tf.nn.sigmoid_cross_entropy_with_logits(labels=self.labels_ph, logits=self.logits)
 
-            self.xent = tf.reduce_mean(xent)
+        self.xent = tf.reduce_mean(xent)
         self.pred_labels = tf.cast(tf.round(self.logits), tf.float32)
 
         # REINFORCE: 0/1 reward

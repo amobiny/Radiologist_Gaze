@@ -10,10 +10,10 @@ class Config(object):
     new_size            = 256
     num_channels        = 1  # remove later
 
-    glimpse_size        = 12
+    glimpse_size        = 20
     bandwidth           = glimpse_size**2
 
-    n_patches           = 1 # # patches at each t
+    n_patches           = 4 # # patches at each t
     num_glimpses        = 6 # samples before decision
     scale               = 2 # how much receptive field is scaled up for each glimpse
 

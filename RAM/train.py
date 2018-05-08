@@ -28,6 +28,8 @@ if __name__ == '__main__':
     parser.add_argument('--task', '-t', type=str, default='org',
                         help='Task - ["org","translated","cluttered", "cluttered_var"].')
 
+    parser.add_argument('--weighted_loss', default=True,
+                        help='Decide to use weighted loss or not')
     parser.add_argument('--model', '-m', type=str, default='ram',
                         help='Model - "RAM" or "DRAM".')
     parser.add_argument('--load', '-l', type=str, default=a,
@@ -73,6 +75,7 @@ if __name__ == '__main__':
     config.num_glimpses = FLAGS.num_glimpses
     config.n_patches = FLAGS.n_patches
     config.p_labels = FLAGS.p_labels
+    config.weighted_loss = FLAGS.weighted_loss
 
     # log directory
     FLAGS.logdir = "./experiments/task={}{}x{}_model={}_conv={}_n_glimpses={}_fovea={}x{}_std={}_{}_context={}_lr={}-{}_p_labels={}".format(
@@ -87,6 +90,7 @@ if __name__ == '__main__':
     # data
     # mnist = input_data.read_data_sets('MNIST_data', one_hot=False)
     data = chest_xray(config)
+    config.w_plus = (data.y_train.shape[0] - np.sum(data.y_train, axis=0)) / (np.sum(data.y_train, axis=0))
 
     # init model
     config.num_glimpses = FLAGS.num_glimpses
