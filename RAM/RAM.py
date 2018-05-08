@@ -44,7 +44,7 @@ class RAM(object):
         # initial glimpse
         # self.init_loc           = tf.random_uniform((self.N, 2), minval=-0.5, maxval=0.5)
         # self.init_loc = tf.zeros(shape=[self.N, 2], dtype=tf.float32, )
-        self.init_loc = [0, 0.25] * tf.ones(shape=[self.N, 2], dtype=tf.float32)
+        self.init_loc = [0, -0.25] * tf.ones(shape=[self.N, 2], dtype=tf.float32)
 
         self.init_glimpse = self.gl(self.init_loc)
         self.inputs = [self.init_glimpse]

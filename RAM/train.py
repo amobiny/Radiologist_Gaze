@@ -28,20 +28,12 @@ if __name__ == '__main__':
     parser.add_argument('--task', '-t', type=str, default='org',
                         help='Task - ["org","translated","cluttered", "cluttered_var"].')
 
-    parser.add_argument('--weighted_loss', default=True,
+    parser.add_argument('--weighted_loss', default=False,
                         help='Decide to use weighted loss or not')
     parser.add_argument('--model', '-m', type=str, default='ram',
                         help='Model - "RAM" or "DRAM".')
     parser.add_argument('--load', '-l', type=str, default=a,
                         help='Load model form directory.')
-    parser.add_argument('--num_glimpses', '-n', type=int, default=6,
-                        help='Number of glimpses to take')
-    parser.add_argument('--loc_std', type=float, default=0.11,
-                        help='Standard deviation of Gaussian sampling.')
-    parser.add_argument('--lr_start', type=float, default=1e-03,
-                        help='Starting learning rate.')
-    parser.add_argument('--n_patches', '-np', type=int, default=1,
-                        help='Number of patches for each glimpse')
     parser.add_argument('--use_context', default=True, action='store_true',
                         help='Use context network (True) or not (False)')
     parser.add_argument('--convnet', default=True, action='store_true',
@@ -68,12 +60,8 @@ if __name__ == '__main__':
     # n_steps = config.step
 
     # parameters
-    config.loc_std = FLAGS.loc_std
-    config.lr_start = FLAGS.lr_start
     config.use_context = FLAGS.use_context
     config.convnet = FLAGS.convnet
-    config.num_glimpses = FLAGS.num_glimpses
-    config.n_patches = FLAGS.n_patches
     config.p_labels = FLAGS.p_labels
     config.weighted_loss = FLAGS.weighted_loss
 
