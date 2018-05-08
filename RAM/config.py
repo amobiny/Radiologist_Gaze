@@ -29,12 +29,12 @@ class Config(object):
     # training
     batch_size          = 32
     eval_batch_size     = 50
-    step                = 60000
+    num_epoch           = 60000
     lr_start            = 1e-3
     lr_min              = 1e-5
     loc_std             = 0.00000011
     max_grad_norm       = 5.
-    n_verbose           = 250
+    n_verbose           = 100
 
     # lstm
     cell_output_size    = 256
@@ -42,7 +42,7 @@ class Config(object):
     cell_out_size       = cell_size
 
     # task
-    num_classes         = 10
+    num_classes         = 1
     n_distractors       = 4 # nr of digit distractors for cluttered task
 
     # monte carlo sampling

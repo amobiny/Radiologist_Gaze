@@ -10,6 +10,7 @@ import os
 
 from GlimpseNetwork import GlimpseNetwork, LocNet
 from Logger import Logger
+from read_chestxray import *
 from data_generator import *
 from src.utils import *
 from src.fig import plot_glimpses, plot_trajectories
@@ -31,7 +32,7 @@ class RAM(object):
         # input placeholders
         self.images_ph = tf.placeholder(tf.float32,
                                         [None, self.config.new_size, self.config.new_size, self.config.num_channels])
-        self.labels_ph = tf.placeholder(tf.int64, [None])
+        self.labels_ph = tf.placeholder(tf.float32, [None])
         self.N = tf.shape(self.images_ph)[0]  # number of examples
 
         # glimpse network
@@ -115,8 +116,8 @@ class RAM(object):
         with tf.variable_scope('classification'):
             w_logit = weight_variable((self.config.cell_output_size, self.config.num_classes))
             b_logit = bias_variable((self.config.num_classes,))
-            self.logits = tf.nn.xw_plus_b(self.output, w_logit, b_logit)
-            # self.softmax = tf.nn.sigmoid(self.logits)  # [batch_size x n_classes]
+            self.logits = tf.reshape(tf.nn.xw_plus_b(self.output, w_logit, b_logit), [-1])
+            self.softmax = tf.nn.sigmoid(self.logits)  # [batch_size x n_classes]
 
             # class probabilities for each glimpse
             self.class_prob_arr = []
@@ -131,8 +132,10 @@ class RAM(object):
 
         # cross-entropy
         xent = tf.nn.sigmoid_cross_entropy_with_logits(labels=self.labels_ph, logits=self.logits)
-        self.xent = tf.reduce_mean(xent)
-        self.pred_labels = tf.argmax(self.logits, 1)
+        xent = tf.nn.weighted_cross_entropy_with_logits(labels=self.labels_ph, logits=self.logits, pos_weight=)
+
+            self.xent = tf.reduce_mean(xent)
+        self.pred_labels = tf.cast(tf.round(self.logits), tf.float32)
 
         # REINFORCE: 0/1 reward
         self.reward = tf.cast(tf.equal(self.pred_labels, self.labels_ph), tf.float32)
@@ -225,41 +228,35 @@ class RAM(object):
 
         self.task = task
         self.setup_logger()  # add logger
+        step_count = int(len(data.x_train) / self.config.batch_size)
+        for epoch in range(self.config.num_epoch):
+            data.x_train, data.y_train = randomize(data.x_train, data.y_train)
+            for step in range(step_count):
+                start = step * self.config.batch_size
+                end = (step + 1) * self.config.batch_size
+                images, labels = get_next_batch(data.x_train, data.y_train, start, end)
+                images = images.reshape((-1, self.config.original_size, self.config.original_size, 1))
 
-        for i in xrange(self.config.step):
+                # duplicate M times, see Eqn (2)
+                images = np.tile(images, [self.config.M, 1, 1, 1])
+                labels = np.tile(labels, [self.config.M])
+                self.loc_net.sampling = True
 
-            images, labels = data.train.next_batch(self.config.batch_size)
-            images = images.reshape((-1, self.config.original_size, self.config.original_size, 1))
+                # training step
+                feed_dict = {self.images_ph: images, self.labels_ph: labels}
+                self.session.run(self.train_op, feed_dict=feed_dict)
 
-            # choose task
-            if self.task == 'translated':
-                images = translate(images, width=self.config.new_size, height=self.config.new_size)
-            elif self.task == 'cluttered':
-                images = clutter(images, train_data=data.train.images.reshape(
-                    (-1, self.config.original_size, self.config.original_size, 1)),
-                                 width=self.config.new_size, height=self.config.new_size,
-                                 n_patches=self.config.n_distractors)
+                # log
+                self.logger.step = epoch * step_count + step
+                self.logger.log('train', feed_dict=feed_dict)
 
-            # duplicate M times, see Eqn (2)
-            images = np.tile(images, [self.config.M, 1, 1, 1])
-            labels = np.tile(labels, [self.config.M])
-            self.loc_net.sampling = True
-
-            # training step
-            feed_dict = {self.images_ph: images, self.labels_ph: labels}
-            self.session.run(self.train_op, feed_dict=feed_dict)
-
-            # log
-            self.logger.step = i
-            self.logger.log('train', feed_dict=feed_dict)
-
-            # evaluation on test/validation
-            # if i and i % (2 * self.training_steps_per_epoch) == 0:
-            if i and i % 1000 == 0:
-                # save model
-                self.logger.save()
-                print '\n==== Evaluation: (step {}) ===='.format(i)
-                self.evaluate(data, task=self.task)
+                # evaluation on test/validation
+                # if i and i % (2 * self.training_steps_per_epoch) == 0:
+                if step and step % 500 == 0:
+                    # save model
+                    self.logger.save()
+                    print '\n==== Evaluation: (total step {}) ===='.format(epoch * step_count + step)
+                    self.evaluate(data, task=self.task)
 
     def evaluate(self, data=[], task='mnist'):
         """Returns accuracy of current model.
@@ -268,8 +265,7 @@ class RAM(object):
             test_accuracy, validation_accuracy
 
         """
-        return evaluate(self.session, self.images_ph, self.labels_ph, self.softmax,
-                        data, self.config, task)
+        return evaluate(self.session, self.images_ph, self.labels_ph, self.softmax, data, self.config, task)
 
     def load(self, checkpoint_dir):
         """Restores model from <<checkpoint_dir>>. Assumes sub-folder 'checkpoints' in directory."""

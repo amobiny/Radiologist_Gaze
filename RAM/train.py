@@ -21,8 +21,8 @@ from tensorflow.examples.tutorials.mnist import input_data
 from read_chestxray import chest_xray
 
 if __name__ == '__main__':
-    a='./experiments/task=org28x28_model=ram_conv=True_n_glimpses=6_fovea=12x12_std=0.11_111947_context=True_lr=0.001-1e-05_p_labels=1/'
-    # a= None
+    # a='./experiments/task=org28x28_model=ram_conv=True_n_glimpses=6_fovea=12x12_std=0.11_111947_context=True_lr=0.001-1e-05_p_labels=1/'
+    a= None
     # ----- parse command line -----
     parser = argparse.ArgumentParser()
     parser.add_argument('--task', '-t', type=str, default='org',
@@ -63,7 +63,7 @@ if __name__ == '__main__':
 
     # parameters
     config = Config()
-    n_steps = config.step
+    # n_steps = config.step
 
     # parameters
     config.loc_std = FLAGS.loc_std
