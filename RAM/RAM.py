@@ -43,7 +43,8 @@ class RAM(object):
 
         # initial glimpse
         # self.init_loc           = tf.random_uniform((self.N, 2), minval=-0.5, maxval=0.5)
-        self.init_loc = tf.zeros(shape=[self.N, 2], dtype=tf.float32, )
+        # self.init_loc = tf.zeros(shape=[self.N, 2], dtype=tf.float32, )
+        self.init_loc = [0, 0.25] * tf.ones(shape=[self.N, 2], dtype=tf.float32)
 
         self.init_glimpse = self.gl(self.init_loc)
         self.inputs = [self.init_glimpse]
@@ -71,8 +72,7 @@ class RAM(object):
         self.init_state = self.lstm_cell.zero_state(self.N, tf.float32)
 
         # output: list of num_glimpses + 1
-        self.outputs, _ = seq2seq.rnn_decoder(
-            self.inputs, self.init_state, self.lstm_cell, loop_function=get_next_input)
+        self.outputs, _ = seq2seq.rnn_decoder(self.inputs, self.init_state, self.lstm_cell, loop_function=get_next_input)
         get_next_input(self.outputs[-1], 0)
         # ---------------------------------------
 
@@ -132,13 +132,13 @@ class RAM(object):
 
         # cross-entropy
         if self.config.weighted_loss:
-            xent = tf.nn.weighted_cross_entropy_with_logits(labels=self.labels_ph, logits=self.logits,
+            xent = tf.nn.weighted_cross_entropy_with_logits(targets=self.labels_ph, logits=self.logits,
                                                             pos_weight=self.config.w_plus)
         else:
             xent = tf.nn.sigmoid_cross_entropy_with_logits(labels=self.labels_ph, logits=self.logits)
 
         self.xent = tf.reduce_mean(xent)
-        self.pred_labels = tf.cast(tf.round(self.logits), tf.float32)
+        self.pred_labels = tf.cast(tf.round(self.softmax), tf.float32)
 
         # REINFORCE: 0/1 reward
         self.reward = tf.cast(tf.equal(self.pred_labels, self.labels_ph), tf.float32)
