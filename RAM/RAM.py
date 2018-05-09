@@ -240,6 +240,8 @@ class RAM(object):
                 images, labels = get_next_batch(data.x_train, data.y_train, start, end)
                 images = images.reshape((-1, self.config.original_size, self.config.original_size, 1))
 
+                images = add_noise(images, mode='pepper', amount=0.05)
+
                 # duplicate M times, see Eqn (2)
                 images = np.tile(images, [self.config.M, 1, 1, 1])
                 labels = np.tile(labels, [self.config.M])
@@ -255,7 +257,7 @@ class RAM(object):
 
                 # evaluation on test/validation
                 # if i and i % (2 * self.training_steps_per_epoch) == 0:
-                if step and step % 500 == 0:
+                if step and epoch * step_count + step % 100 == 0:
                     # save model
                     self.logger.save()
                     print '\n==== Evaluation: (total step {}) ===='.format(epoch * step_count + step)

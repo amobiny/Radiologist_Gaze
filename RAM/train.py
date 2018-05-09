@@ -30,6 +30,9 @@ if __name__ == '__main__':
 
     parser.add_argument('--weighted_loss', default=False,
                         help='Decide to use weighted loss or not')
+    parser.add_argument('--balance', default=True,
+                        help='balance the positive and negative classes')
+
     parser.add_argument('--model', '-m', type=str, default='ram',
                         help='Model - "RAM" or "DRAM".')
     parser.add_argument('--load', '-l', type=str, default=a,
@@ -64,6 +67,7 @@ if __name__ == '__main__':
     config.convnet = FLAGS.convnet
     config.p_labels = FLAGS.p_labels
     config.weighted_loss = FLAGS.weighted_loss
+    config.balance = FLAGS.balance
 
     # log directory
     FLAGS.logdir = "./experiments/task={}{}x{}_model={}_conv={}_n_glimpses={}_fovea={}x{}_std={}_{}_context={}_lr={}-{}_p_labels={}".format(
@@ -81,8 +85,6 @@ if __name__ == '__main__':
     config.w_plus = (data.y_train.shape[0] - np.sum(data.y_train, axis=0)) / (np.sum(data.y_train, axis=0))
 
     # init model
-    config.num_glimpses = FLAGS.num_glimpses
-    config.n_patches = FLAGS.n_patches
     config.sensor_size = config.glimpse_size ** 2 * config.n_patches
     # config.N = mnist.train.num_examples  # number of training examples
     config.N = data.x_train.shape[0]  # number of training examples
