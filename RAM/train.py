@@ -21,7 +21,7 @@ from tensorflow.examples.tutorials.mnist import input_data
 from read_chestxray import chest_xray
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "2, 3"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "2, 3"
 
 if __name__ == '__main__':
     # a='./experiments/task=org256x256_model=ram_conv=True_n_glimpses=8_fovea=12x12_std=0.11_105600_context=True_lr=0.0001-1e-05_p_labels=1_111/'
