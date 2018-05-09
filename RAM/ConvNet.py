@@ -30,7 +30,7 @@ class GlimpseNetwork(object):
         # get input dimensions
         N, W, H, C          = images_ph.get_shape().as_list()
 
-        self.conv_layers    = config.conv_layers
+        # self.conv_layers    = config.conv_layers
         self.original_size  = config.new_size      # assume square
         self.num_channels   = C                    # input channels
         self.sensor_size    = config.sensor_size   # dim. when glimpses are concatenated
@@ -53,14 +53,16 @@ class GlimpseNetwork(object):
 
         with tf.variable_scope('glimpse_sensor'):
             with tf.variable_scope('convolutions'):
-                self.w_g0 = tf.get_variable("conv1", shape=[3,3,3,32],initializer=tf.contrib.layers.xavier_initializer())
-                self.b_g0 = tf.Variable(tf.constant(0.1,shape=[32]),name='b_conv1')
+                self.w_g0 = tf.get_variable("conv1", shape=[3, 3, 1, 32],
+                                            initializer=tf.contrib.layers.xavier_initializer())
+                self.b_g0 = tf.Variable(tf.constant(0.1, shape=[32]), name='b_conv1')
 
-                self.w_g1 = tf.get_variable("conv2", shape=[1,1,32,32],initializer=tf.contrib.layers.xavier_initializer())
-                self.b_g1 = tf.Variable(tf.constant(0.1,shape=[32]),name='b_conv2')
+                self.w_g1 = tf.get_variable("conv2", shape=[3, 3, 32, 32],
+                                            initializer=tf.contrib.layers.xavier_initializer())
+                self.b_g1 = tf.Variable(tf.constant(0.1, shape=[32]), name='b_conv2')
 
-                #self.w_g2 = tf.get_variable("conv3", shape=[3,3,128,256],initializer=tf.contrib.layers.xavier_initializer())
-                #self.b_g2 = tf.Variable(tf.constant(0.1,shape=[256]),name='b_conv2')
+                # self.w_g2 = tf.get_variable("conv3", shape=[3, 3, 64, 128], initializer=tf.contrib.layers.xavier_initializer())
+                # self.b_g2 = tf.Variable(tf.constant(0.1, shape=[128]), name='b_conv2')
 
             # fully connected
             with tf.variable_scope('fully_connected'):
@@ -102,7 +104,7 @@ class GlimpseNetwork(object):
 
             # make sure glimpses are within image
             lower, upper    = location_bounds(glimpse_size, self.original_size)
-            loc             = tf.clip_by_value(loc,lower,upper)
+            loc             = tf.clip_by_value(loc, lower, upper)
 
             glimpse = tf.image.extract_glimpse(self.images_ph,
                                                 [glimpse_size, glimpse_size],
@@ -157,7 +159,7 @@ class GlimpseNetwork(object):
         for i in range(self.n_patches):
 
             # glimpse sensor
-            strides = [1,1,1,1]
+            strides = [1, 1, 1, 1]
             h = tf.nn.relu(tf.nn.conv2d(patches[i], self.w_g0, strides=strides, padding='SAME') + self.b_g0)
             h = maxpool2d(h, k=2)
             # 24 x 24

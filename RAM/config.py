@@ -10,11 +10,11 @@ class Config(object):
     new_size            = 256
     num_channels        = 1  # remove later
 
-    glimpse_size        = 12
+    glimpse_size        = 20
     bandwidth           = glimpse_size**2
 
-    n_patches           = 1 # # patches at each t
-    num_glimpses        = 2 # samples before decision
+    n_patches           = 4 # # patches at each t
+    num_glimpses        = 8 # samples before decision
     scale               = 2 # how much receptive field is scaled up for each glimpse
 
     sensor_size         = glimpse_size**2 * n_patches
@@ -30,7 +30,7 @@ class Config(object):
     batch_size          = 16
     eval_batch_size     = 50
     num_epoch           = 600
-    lr_start            = 1e-3
+    lr_start            = 1e-4
     lr_min              = 1e-5
     loc_std             = 0.11
     max_grad_norm       = 5.

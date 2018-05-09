@@ -19,9 +19,12 @@ from config import Config
 
 from tensorflow.examples.tutorials.mnist import input_data
 from read_chestxray import chest_xray
+import os
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "2, 3"
 
 if __name__ == '__main__':
-    # a='./experiments/task=org28x28_model=ram_conv=True_n_glimpses=6_fovea=12x12_std=0.11_111947_context=True_lr=0.001-1e-05_p_labels=1/'
+    # a='./experiments/task=org256x256_model=ram_conv=True_n_glimpses=8_fovea=12x12_std=0.11_105600_context=True_lr=0.0001-1e-05_p_labels=1_111/'
     a= None
     # ----- parse command line -----
     parser = argparse.ArgumentParser()
@@ -70,7 +73,7 @@ if __name__ == '__main__':
     config.balance = FLAGS.balance
 
     # log directory
-    FLAGS.logdir = "./experiments/task={}{}x{}_model={}_conv={}_n_glimpses={}_fovea={}x{}_std={}_{}_context={}_lr={}-{}_p_labels={}".format(
+    FLAGS.logdir = "./experiments/task={}{}x{}_model={}_conv={}_n_glimpses={}_fovea={}x{}_std={}_{}_context={}_lr={}-{}_p_labels={}_3".format(
         FLAGS.task, config.new_size, config.new_size,
         FLAGS.model, config.convnet, config.num_glimpses, config.glimpse_size, config.glimpse_size,
         config.loc_std, time_str, config.use_context, config.lr_start, config.lr_min,
@@ -80,13 +83,12 @@ if __name__ == '__main__':
     # ------------------------------
 
     # data
-    # mnist = input_data.read_data_sets('MNIST_data', one_hot=False)
     data = chest_xray(config)
-    config.w_plus = (data.y_train.shape[0] - np.sum(data.y_train, axis=0)) / (np.sum(data.y_train, axis=0))
+    config.w_plus = 10
+    # config.w_plus = (data.y_train.shape[0] - np.sum(data.y_train, axis=0)) / (np.sum(data.y_train, axis=0))
 
     # init model
     config.sensor_size = config.glimpse_size ** 2 * config.n_patches
-    # config.N = mnist.train.num_examples  # number of training examples
     config.N = data.x_train.shape[0]  # number of training examples
 
     if FLAGS.model == 'ram':
@@ -105,7 +107,7 @@ if __name__ == '__main__':
     # load if specified
     if FLAGS.load is not None:
         model.load(FLAGS.load)
-        model.visualize(config=[], data=mnist, task={'variant': 'cluttered', 'width': 60, 'n_distractors': 4},
+        model.visualize(config=[], data=data, task={'variant': 'cluttered', 'width': 60, 'n_distractors': 4},
                         plot_dir='.', N=10, seed=None)
     # display # parameters
     model.count_params()
@@ -113,4 +115,4 @@ if __name__ == '__main__':
     # train
     model.train(data, FLAGS.task)
 
-    model.evaluate(data=mnist, task=FLAGS.task)
+    model.evaluate(data=data, task=FLAGS.task)

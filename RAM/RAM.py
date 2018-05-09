@@ -8,7 +8,6 @@ import tensorflow as tf
 import numpy as np
 import os
 
-from GlimpseNetwork import GlimpseNetwork, LocNet
 from Logger import Logger
 from read_chestxray import *
 from data_generator import *
@@ -35,6 +34,13 @@ class RAM(object):
         self.labels_ph = tf.placeholder(tf.float32, [None])
         self.N = tf.shape(self.images_ph)[0]  # number of examples
 
+        if self.config.convnet:
+            print 'Glimpse sensor is Convnet.'
+            from ConvNet import GlimpseNetwork, LocNet          # glimpse net is conv net
+        else:
+            print 'Glimpse sensor is fully connected.'
+            from GlimpseNetwork import GlimpseNetwork, LocNet   # glimpse net if fully connected
+
         # glimpse network
         with tf.variable_scope('glimpse_net'):
             self.gl = GlimpseNetwork(self.config, self.images_ph)
@@ -43,8 +49,8 @@ class RAM(object):
 
         # initial glimpse
         # self.init_loc           = tf.random_uniform((self.N, 2), minval=-0.5, maxval=0.5)
-        # self.init_loc = tf.zeros(shape=[self.N, 2], dtype=tf.float32, )
-        self.init_loc = [0, -0.25] * tf.ones(shape=[self.N, 2], dtype=tf.float32)
+        self.init_loc = tf.zeros(shape=[self.N, 2], dtype=tf.float32, )
+        # self.init_loc = [0, -0.25] * tf.ones(shape=[self.N, 2], dtype=tf.float32)
 
         self.init_glimpse = self.gl(self.init_loc)
         self.inputs = [self.init_glimpse]
@@ -240,7 +246,7 @@ class RAM(object):
                 images, labels = get_next_batch(data.x_train, data.y_train, start, end)
                 images = images.reshape((-1, self.config.original_size, self.config.original_size, 1))
 
-                images = add_noise(images, mode='pepper', amount=0.05)
+                # images = add_noise(images, mode='pepper', amount=0.05)
 
                 # duplicate M times, see Eqn (2)
                 images = np.tile(images, [self.config.M, 1, 1, 1])
@@ -257,7 +263,7 @@ class RAM(object):
 
                 # evaluation on test/validation
                 # if i and i % (2 * self.training_steps_per_epoch) == 0:
-                if step and epoch * step_count + step % 100 == 0:
+                if step and epoch * step_count + step % 300 == 0:
                     # save model
                     self.logger.save()
                     print '\n==== Evaluation: (total step {}) ===='.format(epoch * step_count + step)
@@ -309,8 +315,8 @@ class RAM(object):
         # config.n_distractors    = task['n_distractors']
 
         # data
-        X = data.test.images.reshape((-1, 28, 28, 1))
-        labels = data.test.labels
+        X = data.x_test.reshape((-1, 256, 256, 1))
+        labels = data.y_test
 
         # test model
         # if task['variant'] == 'translated':
