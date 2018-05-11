@@ -21,7 +21,8 @@ from    src.utils        import *
 class GlimpseNetwork(object):
     """ Takes image and previous glimpse location and outputs feature vector."""
 
-    def __init__(self, config, images_ph):
+    def \
+            __init__(self, config, images_ph):
         """
         :param config:      (object) hyperparams
         :param images_ph:   (placeholder) 4D tensor, format 'NHWC'
@@ -57,16 +58,16 @@ class GlimpseNetwork(object):
                                             initializer=tf.contrib.layers.xavier_initializer())
                 self.b_g0 = tf.Variable(tf.constant(0.1, shape=[32]), name='b_conv1')
 
-                self.w_g1 = tf.get_variable("conv2", shape=[3, 3, 32, 32],
+                self.w_g1 = tf.get_variable("conv2", shape=[3, 3, 32, 64],
                                             initializer=tf.contrib.layers.xavier_initializer())
-                self.b_g1 = tf.Variable(tf.constant(0.1, shape=[32]), name='b_conv2')
+                self.b_g1 = tf.Variable(tf.constant(0.1, shape=[64]), name='b_conv2')
 
-                # self.w_g2 = tf.get_variable("conv3", shape=[3, 3, 64, 128], initializer=tf.contrib.layers.xavier_initializer())
-                # self.b_g2 = tf.Variable(tf.constant(0.1, shape=[128]), name='b_conv2')
+                # self.w_g2 = tf.get_variable("conv3", shape=[3, 3, 64, 64], initializer=tf.contrib.layers.xavier_initializer())
+                # self.b_g2 = tf.Variable(tf.constant(0.1, shape=[64]), name='b_conv2')
 
             # fully connected
             with tf.variable_scope('fully_connected'):
-                n_units = (self.glimpse_size/2)**2 * 32 # 3 x max pooling
+                n_units = (self.glimpse_size/4)**2 * 64 # 3 x max pooling
                 self.w_g3 = weight_variable((n_units, self.g_size), name='weights')
                 self.b_g3 = bias_variable((self.g_size,), name='bias')
 
@@ -165,20 +166,22 @@ class GlimpseNetwork(object):
             # 24 x 24
 
             h = tf.nn.relu(tf.nn.conv2d(h, self.w_g1, strides=strides, padding='SAME') + self.b_g1)
-            #h = maxpool2d(h, k=2)
+            h = maxpool2d(h, k=2)
             # 12 x 12
 
-            #h = tf.nn.relu(tf.nn.conv2d(h, self.w_g2, strides=strides, padding='SAME') + self.b_g2)
+            # h = tf.nn.relu(tf.nn.conv2d(h, self.w_g2, strides=strides, padding='SAME') + self.b_g2)
             #h = maxpool2d(h, k=2)
             # 6 x 6
 
             h = tf.contrib.layers.flatten(h)
+            # h = tf.nn.dropout(h, 0.7)
             h = tf.nn.relu(tf.nn.xw_plus_b(h, self.w_g3, self.b_g3))
             hg.append(h)
 
         hg = tf.stack(hg, axis=1)
 
         hg = tf.contrib.layers.flatten(hg)
+        # hg = tf.nn.dropout(hg, 0.7)
         hg = tf.nn.relu(tf.nn.xw_plus_b(hg, self.w_g4, self.b_g4))
 
         # 'location encoder'

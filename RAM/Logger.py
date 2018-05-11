@@ -63,9 +63,10 @@ class Logger(object):
                 val = self.session.run(self.eval_ops[key], feed_dict)
                 print '{}={:3.4f}\t'.format(key, val),
 
-    def save(self):
+    def save(self, epoch):
         """Saves model checkpoint."""
-        self.saver.save(self.session, os.path.join(self.checkpoint_path, 'checkpoint'), global_step=self.global_step)
+        # self.saver.save(self.session, os.path.join(self.checkpoint_path, 'checkpoint'), global_step=self.global_step)
+        self.saver.save(self.session, os.path.join(self.checkpoint_path, 'checkpoint'), global_step=epoch)
 
     def restore(self, checkpoint_dir):
         ckpt = tf.train.get_checkpoint_state(checkpoint_dir)

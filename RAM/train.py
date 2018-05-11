@@ -24,16 +24,16 @@ import os
 # os.environ["CUDA_VISIBLE_DEVICES"] = "2, 3"
 
 if __name__ == '__main__':
-    # a='./experiments/task=org256x256_model=ram_conv=True_n_glimpses=8_fovea=12x12_std=0.11_105600_context=True_lr=0.0001-1e-05_p_labels=1_111/'
+    # a='./experiments/task=org256x256_model=ram_conv=True_n_glimpses=8_fovea=20x20_std=0.05_140958_context=True_lr=0.0005-1e-05_p_labels=1_4/'
     a= None
     # ----- parse command line -----
     parser = argparse.ArgumentParser()
     parser.add_argument('--task', '-t', type=str, default='org',
                         help='Task - ["org","translated","cluttered", "cluttered_var"].')
 
-    parser.add_argument('--weighted_loss', default=False,
+    parser.add_argument('--weighted_loss', default=True,
                         help='Decide to use weighted loss or not')
-    parser.add_argument('--balance', default=True,
+    parser.add_argument('--balance', default=False,
                         help='balance the positive and negative classes')
 
     parser.add_argument('--model', '-m', type=str, default='ram',
@@ -73,7 +73,7 @@ if __name__ == '__main__':
     config.balance = FLAGS.balance
 
     # log directory
-    FLAGS.logdir = "./experiments/task={}{}x{}_model={}_conv={}_n_glimpses={}_fovea={}x{}_std={}_{}_context={}_lr={}-{}_p_labels={}_3".format(
+    FLAGS.logdir = "./experiments/task={}{}x{}_model={}_conv={}_n_glimpses={}_fovea={}x{}_std={}_{}_context={}_lr={}-{}_p_labels={}_5".format(
         FLAGS.task, config.new_size, config.new_size,
         FLAGS.model, config.convnet, config.num_glimpses, config.glimpse_size, config.glimpse_size,
         config.loc_std, time_str, config.use_context, config.lr_start, config.lr_min,
@@ -83,13 +83,13 @@ if __name__ == '__main__':
     # ------------------------------
 
     # data
-    data = chest_xray(config)
-    config.w_plus = 10
-    # config.w_plus = (data.y_train.shape[0] - np.sum(data.y_train, axis=0)) / (np.sum(data.y_train, axis=0))
+    # data = chest_xray(config)
+    config.w_plus = np.array([1., 1., 1., 1., 1.]).astype(np.float32)
+    # config.w_plus = (data.y_train.shape[0] - np.sum(data.y_train, axis=0)) / (np.sum(data.y_train, axis=0)).astype(np.float32)
 
     # init model
     config.sensor_size = config.glimpse_size ** 2 * config.n_patches
-    config.N = data.x_train.shape[0]  # number of training examples
+    # config.N = data.x_train.shape[0]  # number of training examples
 
     if FLAGS.model == 'ram':
         print '\n\n\nTraining RAM\n\n\n'
@@ -108,11 +108,10 @@ if __name__ == '__main__':
     if FLAGS.load is not None:
         model.load(FLAGS.load)
         model.visualize(config=[], data=data, task={'variant': 'cluttered', 'width': 60, 'n_distractors': 4},
-                        plot_dir='.', N=10, seed=None)
+                        plot_dir='.', N=49, seed=None)
     # display # parameters
     model.count_params()
 
     # train
     model.train(data, FLAGS.task)
-
     model.evaluate(data=data, task=FLAGS.task)

@@ -31,7 +31,7 @@ class RAM(object):
         # input placeholders
         self.images_ph = tf.placeholder(tf.float32,
                                         [None, self.config.new_size, self.config.new_size, self.config.num_channels])
-        self.labels_ph = tf.placeholder(tf.float32, [None])
+        self.labels_ph = tf.placeholder(tf.float32, [None, self.config.num_classes])
         self.N = tf.shape(self.images_ph)[0]  # number of examples
 
         if self.config.convnet:
@@ -122,7 +122,8 @@ class RAM(object):
         with tf.variable_scope('classification'):
             w_logit = weight_variable((self.config.cell_output_size, self.config.num_classes))
             b_logit = bias_variable((self.config.num_classes,))
-            self.logits = tf.reshape(tf.nn.xw_plus_b(self.output, w_logit, b_logit), [-1])
+            # self.logits = tf.reshape(tf.nn.xw_plus_b(self.output, w_logit, b_logit), [-1])
+            self.logits = tf.nn.xw_plus_b(self.output, w_logit, b_logit)
             self.softmax = tf.nn.sigmoid(self.logits)  # [batch_size x n_classes]
 
             # class probabilities for each glimpse
@@ -138,8 +139,9 @@ class RAM(object):
 
         # cross-entropy
         if self.config.weighted_loss:
-            xent = tf.nn.weighted_cross_entropy_with_logits(targets=self.labels_ph, logits=self.logits,
-                                                            pos_weight=self.config.w_plus)
+            # xent = tf.nn.weighted_cross_entropy_with_logits(targets=self.labels_ph, logits=self.logits,
+            #                                                 pos_weight=self.config.w_plus)
+            xent = self.cross_entropy_loss(self.config.w_plus, weighted_loss=self.config.weighted_loss)
         else:
             xent = tf.nn.sigmoid_cross_entropy_with_logits(labels=self.labels_ph, logits=self.logits)
 
@@ -170,6 +172,26 @@ class RAM(object):
         # session
         self.session = tf.Session()
         self.session.run(tf.global_variables_initializer())
+
+    def cross_entropy_loss(self, w_plus, weighted_loss=True):
+        """
+         Calculates the cross-entropy loss function for the given parameters.
+        :param labels_tensor: Tensor of correct predictions of size [batch_size, numClasses]
+        :param logits_tensor: Predicted scores (logits) by the model.
+                It should have the same dimensions as labels_tensor
+        :return: Cross-entropy loss value over the samples of the current batch
+        """
+        if weighted_loss:
+            labels_series = tf.unstack(self.labels_ph, axis=1)
+            logits_series = tf.unstack(self.logits, axis=1)
+            losses_list = [tf.nn.weighted_cross_entropy_with_logits(logits=logits, targets=labels, pos_weight=w_p)
+                           for (logits, labels, w_p) in
+                           zip(logits_series, labels_series, tf.split(w_plus, self.config.num_classes))]
+            diff = tf.stack(losses_list, axis=1)
+        else:
+            diff = tf.nn.sigmoid_cross_entropy_with_logits(logits=self.logits, labels=self.labels_ph)
+        loss = tf.reduce_mean(diff)
+        return loss
 
     def setup_optimization(self, training_steps_per_epoch=None):
         """Set up optimzation operators."""
@@ -246,7 +268,7 @@ class RAM(object):
                 images, labels = get_next_batch(data.x_train, data.y_train, start, end)
                 images = images.reshape((-1, self.config.original_size, self.config.original_size, 1))
 
-                # images = add_noise(images, mode='pepper', amount=0.05)
+                images = add_noise(images, mode='pepper', amount=0.05)
 
                 # duplicate M times, see Eqn (2)
                 images = np.tile(images, [self.config.M, 1, 1, 1])
@@ -263,11 +285,12 @@ class RAM(object):
 
                 # evaluation on test/validation
                 # if i and i % (2 * self.training_steps_per_epoch) == 0:
-                if step and epoch * step_count + step % 300 == 0:
-                    # save model
-                    self.logger.save()
-                    print '\n==== Evaluation: (total step {}) ===='.format(epoch * step_count + step)
-                    self.evaluate(data, task=self.task)
+                # if step and epoch * step_count + step % 1000 == 0:
+            if epoch and epoch % 2 == 0:
+                # save model
+                self.logger.save(epoch)
+                print '\n==== Evaluation: (Epoch #{}) ===='.format(epoch)
+                self.evaluate(data, task=self.task)
 
     def evaluate(self, data=[], task='mnist'):
         """Returns accuracy of current model.
@@ -293,7 +316,7 @@ class RAM(object):
             self.saver.restore(self.session, ckpt.model_checkpoint_path)
 
     def visualize(self, config=[], data=[], task={'variant': 'mnist', 'width': 60, 'n_distractors': 4},
-                  plot_dir='.', N=10, seed=None):
+                  plot_dir='.', N=16, seed=None):
         """Given a saved model visualizes inference.
 
         Args:
@@ -315,8 +338,8 @@ class RAM(object):
         # config.n_distractors    = task['n_distractors']
 
         # data
-        X = data.x_test.reshape((-1, 256, 256, 1))
-        labels = data.y_test
+        X = data.x_train.reshape((-1, 256, 256, 1))
+        labels = data.y_train
 
         # test model
         # if task['variant'] == 'translated':
