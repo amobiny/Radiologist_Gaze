@@ -290,11 +290,11 @@ class RAM(object):
                 # evaluation on test/validation
                 # if i and i % (2 * self.training_steps_per_epoch) == 0:
                 # if step and epoch * step_count + step % 1000 == 0:
-                if step and step % 2 == 0:
-                    # save model
-                    self.logger.save(epoch)
-                    print '\n==== Evaluation: (Epoch #{}) ===='.format(epoch)
-                    self.evaluate(data, task=self.task)
+                # if step and step % 2 == 0:
+            # save model
+            self.logger.save(epoch)
+            print '\n==== Evaluation: (Epoch #{}) ===='.format(epoch)
+            self.evaluate(data, task=self.task)
 
     def evaluate(self, data=[], task='mnist'):
         """Returns accuracy of current model.
@@ -303,7 +303,7 @@ class RAM(object):
             test_accuracy, validation_accuracy
 
         """
-        return evaluate(self.session, self.images_ph, self.labels_ph, self.softmax, data, self.config, task)
+        return evaluate(self.session, self.images_ph, self.labels_ph, self.softmax, self.loss, data, self.config, task)
 
     def load(self, checkpoint_dir):
         """Restores model from <<checkpoint_dir>>. Assumes sub-folder 'checkpoints' in directory."""
