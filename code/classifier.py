@@ -43,6 +43,14 @@ def multi_run(x, y, count, split=True):
 
 
 def run_classifier(x, y, centers, split=True):
+    """
+    Runs the classifier and returns the important features in "ascending" order
+    :param x: input data (i.e. image histograms) of size (#images, n_cluster)
+    :param y: corresponding labels of size (#images, #conditions)
+    :param centers: centroid of clusters (gaze sequences) of size (350, 54)
+    :param split: whether to split train and test data or not
+    :return: important centroids sorted in ascending order, the classifier, and the percentiles
+    """
     mean_acc, std_acc = multi_run(x, y, args.num_run, split=split)
     print('Average accuracy over {0} runs: {1:.02%}+-({2:.2f})'.format(args.num_run, mean_acc, std_acc * 100))
     acc, feat_imp, classifier = classifier_model(x, y, args.n_estimators, args.max_depth, args.max_features,
