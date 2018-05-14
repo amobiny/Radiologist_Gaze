@@ -8,6 +8,8 @@ import tensorflow as tf
 import numpy as np
 import os
 
+import time
+
 from Logger import Logger
 from read_chestxray import *
 from data_generator import *
@@ -141,15 +143,14 @@ class RAM(object):
         if self.config.weighted_loss:
             # xent = tf.nn.weighted_cross_entropy_with_logits(targets=self.labels_ph, logits=self.logits,
             #                                                 pos_weight=self.config.w_plus)
-            xent = self.cross_entropy_loss(self.config.w_plus, weighted_loss=self.config.weighted_loss)
+            self.xent = self.cross_entropy_loss(self.config.w_plus, weighted_loss=self.config.weighted_loss)
         else:
             xent = tf.nn.sigmoid_cross_entropy_with_logits(labels=self.labels_ph, logits=self.logits)
-
-        self.xent = tf.reduce_mean(xent)
+            self.xent = tf.reduce_mean(xent)
         self.pred_labels = tf.cast(tf.round(self.softmax), tf.float32)
 
         # REINFORCE: 0/1 reward
-        self.reward = tf.cast(tf.equal(self.pred_labels, self.labels_ph), tf.float32)
+        self.reward = tf.reduce_mean(tf.cast(tf.equal(self.pred_labels, self.labels_ph), tf.float32), axis=1)
 
         self.rewards = tf.expand_dims(self.reward, 1)  # [batch_sz, 1]
         self.rewards = tf.tile(self.rewards, (1, self.config.num_glimpses))  # [batch_sz, timesteps]
@@ -184,6 +185,7 @@ class RAM(object):
         if weighted_loss:
             labels_series = tf.unstack(self.labels_ph, axis=1)
             logits_series = tf.unstack(self.logits, axis=1)
+            w_plus = w_plus.astype(np.float32)
             losses_list = [tf.nn.weighted_cross_entropy_with_logits(logits=logits, targets=labels, pos_weight=w_p)
                            for (logits, labels, w_p) in
                            zip(logits_series, labels_series, tf.split(w_plus, self.config.num_classes))]
@@ -263,6 +265,7 @@ class RAM(object):
         for epoch in range(self.config.num_epoch):
             data.x_train, data.y_train = randomize(data.x_train, data.y_train)
             for step in range(step_count):
+                # t = time.time()
                 start = step * self.config.batch_size
                 end = (step + 1) * self.config.batch_size
                 images, labels = get_next_batch(data.x_train, data.y_train, start, end)
@@ -272,7 +275,7 @@ class RAM(object):
 
                 # duplicate M times, see Eqn (2)
                 images = np.tile(images, [self.config.M, 1, 1, 1])
-                labels = np.tile(labels, [self.config.M])
+                labels = np.tile(labels, [self.config.M, 1])
                 self.loc_net.sampling = True
 
                 # training step
@@ -282,15 +285,16 @@ class RAM(object):
                 # log
                 self.logger.step = epoch * step_count + step
                 self.logger.log('train', feed_dict=feed_dict)
+                # print('iteration time: {}'.format(time.time() - t))
 
                 # evaluation on test/validation
                 # if i and i % (2 * self.training_steps_per_epoch) == 0:
                 # if step and epoch * step_count + step % 1000 == 0:
-            if epoch and epoch % 2 == 0:
-                # save model
-                self.logger.save(epoch)
-                print '\n==== Evaluation: (Epoch #{}) ===='.format(epoch)
-                self.evaluate(data, task=self.task)
+                if step and step % 2 == 0:
+                    # save model
+                    self.logger.save(epoch)
+                    print '\n==== Evaluation: (Epoch #{}) ===='.format(epoch)
+                    self.evaluate(data, task=self.task)
 
     def evaluate(self, data=[], task='mnist'):
         """Returns accuracy of current model.

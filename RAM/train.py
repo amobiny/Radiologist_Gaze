@@ -83,13 +83,13 @@ if __name__ == '__main__':
     # ------------------------------
 
     # data
-    # data = chest_xray(config)
-    config.w_plus = np.array([1., 1., 1., 1., 1.]).astype(np.float32)
-    # config.w_plus = (data.y_train.shape[0] - np.sum(data.y_train, axis=0)) / (np.sum(data.y_train, axis=0)).astype(np.float32)
+    data = chest_xray(config)
+    # config.w_plus = np.array([1., 1., 1., 1., 1.]).astype(np.float32)
+    config.w_plus = (data.y_train.shape[0] - np.sum(data.y_train, axis=0)) / (np.sum(data.y_train, axis=0))
 
     # init model
     config.sensor_size = config.glimpse_size ** 2 * config.n_patches
-    # config.N = data.x_train.shape[0]  # number of training examples
+    config.N = data.x_train.shape[0]  # number of training examples
 
     if FLAGS.model == 'ram':
         print '\n\n\nTraining RAM\n\n\n'

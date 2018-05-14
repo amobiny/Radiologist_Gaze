@@ -14,7 +14,7 @@ class Config(object):
     bandwidth           = glimpse_size**2
 
     n_patches           = 2 # # patches at each t
-    num_glimpses        = 100 # samples before decision
+    num_glimpses        = 50 # samples before decision
     scale               = 2 # how much receptive field is scaled up for each glimpse
 
     sensor_size         = glimpse_size**2 * n_patches
