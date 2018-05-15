@@ -24,8 +24,8 @@ import os
 # os.environ["CUDA_VISIBLE_DEVICES"] = "2, 3"
 
 if __name__ == '__main__':
-    # a='./experiments/task=org256x256_model=ram_conv=True_n_glimpses=8_fovea=20x20_std=0.05_140958_context=True_lr=0.0005-1e-05_p_labels=1_4/'
-    a= None
+    a='./experiments/task=org256x256_model=ram_conv=True_n_glimpses=50_fovea=12x12_std=0.05_123330_context=True_lr=0.0005-1e-05_p_labels=1_5/'
+    # a= None
     # ----- parse command line -----
     parser = argparse.ArgumentParser()
     parser.add_argument('--task', '-t', type=str, default='org',
