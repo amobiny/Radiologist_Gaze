@@ -4,9 +4,11 @@ import os
 from config import args
 
 
-def gazePlotter(data, name=None, flattened=True, save=False, output_path=None, plot=True):
+def gazePlotter(data, name=None, flattened=True, save=False, output_path=None, plot=True, img_name=None):
     x = []
     y = []
+    if not img_name:
+        img_name = 'CXR129_IM-0189-1001'
     if flattened:
         for i in range(0, len(data) - 1, 2):
             x.append(data[i])
@@ -16,7 +18,6 @@ def gazePlotter(data, name=None, flattened=True, save=False, output_path=None, p
             x.append(point[0])
             y.append(point[1])
     fig = plt.figure()
-    # plt.rcParams['animation.ffmpeg_path'] = 'C:/ffmpeg/ffmpeg.exe'
     plt.xlim(0, 2560)
     plt.ylim(1440, 0)
     line, = plt.plot(x, y)
@@ -24,12 +25,7 @@ def gazePlotter(data, name=None, flattened=True, save=False, output_path=None, p
     def animate(ii):
         line.set_data(x[:ii + 1], y[:ii + 1])
         return line
-
-    writer = animation.ImageMagickFileWriter()  # for ubuntu
-    # writers = animation.writers['ffmpeg']
-    # writer = writers(fps=30, metadata=dict(artist='Me'), bitrate=1800)
-    # writer = animation.FFMpegFileWriter(fps=15, metadata=dict(artist='Me'), bitrate=1800)
-    img = plt.imread(args.proj_dir + '/images/CXR129_IM-0189-1001.jpg')
+    img = plt.imread(args.proj_dir + '/images/' + img_name + '.jpg')
     plt.imshow(img)
     ani = animation.FuncAnimation(fig, animate, frames=50, interval=100)
     if save is True:

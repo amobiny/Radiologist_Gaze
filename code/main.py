@@ -48,7 +48,7 @@ sorted_cluster_center_imp, classifier, percentile = run_classifier(x_new, y_new[
 # returns array of size (350, 54)
 
 carol_cluster_count = get_cluster_count(sorted_cluster_center_imp, carol_subs)  # list of 350 tuples
-save_histogram(carol_cluster_count, percentile, name='/darshan_all_abnorms_most_important2.png')
+# save_histogram(carol_cluster_count, percentile, name='/darshan_all_abnorms_most_important2.png')
 gaze_plot_save(carol_cluster_count, sorted_cluster_center_imp, num=args.numvid,
                path='darshan_all_abnorms_most_important2/')
 # darshan_cluster_count = get_cluster_count(sorted_cluster_center_imp, darshan_subs)  # list of 350 tuples
