@@ -29,7 +29,7 @@ nesterov_momentum = 0.9
 weight_decay = 5e-4
 
 # Label & batch_size
-batch_size = 2
+# batch_size = 2
 
 # batch_size * iteration = data_set_number
 freq = 1000
@@ -255,50 +255,23 @@ input_image = np.reshape(input_image, [-1, 256, 256, 1])
 img_size = 256
 img_channels = 1
 class_num = 14
+batch_size = 2
+
+
+def get_next_batch(x, start, end):
+    x_batch = x[start:end]
+    return x_batch
 
 
 # image_size = 32, img_channels = 3, class_num = 10 in cifar10
 x = tf.placeholder(tf.float32, shape=[None, img_size, img_size, img_channels])
 label = tf.placeholder(tf.float32, shape=[None, class_num])
-
 training_flag = tf.placeholder(tf.bool)
 
-# learning_rate = tf.placeholder(tf.float32, name='learning_rate')
-
 ext_feat = DenseNet(x=x, nb_blocks=nb_block, filters=growth_k, training=training_flag).features
-# l2_loss = tf.add_n([tf.nn.l2_loss(var) for var in tf.trainable_variables()])
-
-# w_plus = (y_train.shape[0] - np.sum(y_train, axis=0)) / (np.sum(y_train, axis=0))
-# cost = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=label, logits=logits))
-# cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=label, logits=logits))
-# cost = tf.reduce_mean(tf.nn.weighted_cross_entropy_with_logits(targets=label, logits=logits, pos_weight= w_plus))
-#
-# correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(label, 1))
-# accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-#
-# preds = tf.nn.sigmoid(logits)
-# preds = tf.round(preds)
-
-
-
-
-
-"""
-optimizer = tf.train.MomentumOptimizer(learning_rate=learning_rate, momentum=nesterov_momentum, use_nesterov=True)
-train = optimizer.minimize(cost + l2_loss * weight_decay)
-
-In paper, use MomentumOptimizer
-init_learning_rate = 0.1
-
-but, I'll use AdamOptimizer
-"""
-
-# optimizer = tf.train.AdamOptimizer(learning_rate=init_learning_rate, epsilon=epsilon)
-# train = optimizer.minimize(cost)
 
 saver = tf.train.Saver(tf.global_variables())
-
-# iteration = x_train.shape[0]/batch_size
+all_feats = np.zeros((0, 64, 64, 416))
 conditions = ['Atelectasis', 'Cardiomegaly', 'Effusion', 'Infiltration', 'Mass', 'Nodule', 'Pneumonia',
               'Pneumothorax', 'Consolidation', 'Edema', 'Emphysema', 'Fibrosis', 'Pleural_Thickening', 'Hernia']
 with tf.Session() as sess:
@@ -308,195 +281,18 @@ with tf.Session() as sess:
         saver.restore(sess, ckpt.model_checkpoint_path)
     else:
         sess.run(tf.global_variables_initializer())
-    merged = tf.summary.merge_all()
-    a = sess.run(ext_feat, feed_dict={x: input_image, label: np.random.rand(input_image.shape[0], 14), training_flag : False})
+
+    step_count = int(input_image.shape[0]) / batch_size
+    for step in range(step_count):
+        start = step * batch_size
+        end = (step + 1) * batch_size
+        X_batch = get_next_batch(input_image, start, end)
+        a = sess.run(ext_feat, feed_dict={x: X_batch, label: np.random.rand(X_batch.shape[0], 14), training_flag: False})
+        all_feats = np.concatenate((all_feats, a), axis=0)
     print()
 
-
-
-
-
-
-
-    #
-    #
-    #
-    #
-    #
-    # train_writer = tf.summary.FileWriter('./logs/'+currentDT.strftime("%Y-%m-%d_%H-%M-%S")+'/train/', sess.graph)
-    # test_writer = tf.summary.FileWriter('./logs/'+currentDT.strftime("%Y-%m-%d_%H-%M-%S")+'/test/')
-    # epoch_learning_rate = init_learning_rate
-    # all_batch_preds = all_batch_labels = np.zeros((0, 14))
-    # for epoch in range(1, total_epochs + 1):
-    #     if epoch == (total_epochs * 0.5) or epoch == (total_epochs * 0.75):
-    #         epoch_learning_rate = epoch_learning_rate / 10
-    #
-    #     pre_index = 0
-    #     train_acc = 0.0
-    #     train_loss = 0.0
-    #     preds_frq_steps = np.zeros((batch_size*freq, class_num))
-    #     index = 0
-    #
-    #
-    #     for step in range(1, iteration + 1):
-    #         # if pre_index+batch_size < 50000 :
-    #         batch_x = x_train[pre_index : pre_index+batch_size]
-    #         batch_y = y_train[pre_index : pre_index+batch_size]
-    #         # else :
-    #         #     batch_x = train_x[pre_index : ]
-    #         #     batch_y = train_y[pre_index : ]
-    #         #
-    #         # batch_x = data_augmentation(batch_x)
-    #
-    #         train_feed_dict = {
-    #             x: batch_x,
-    #             label: batch_y,
-    #             # learning_rate: epoch_learning_rate,
-    #             training_flag : True
-    #         }
-    #
-    #         _, batch_loss = sess.run([train, cost], feed_dict = train_feed_dict)
-    #         # train_writer.add_summary(summary, iteration * (epoch - 1) + step)
-    #         # batch_acc = accuracy.eval(feed_dict = train_feed_dict)
-    #         batch_preds = preds.eval(feed_dict = train_feed_dict)
-    #         all_batch_labels = np.concatenate((all_batch_labels, batch_y))
-    #         all_batch_preds = np.concatenate((all_batch_preds, batch_preds))
-    #
-    #         train_loss += batch_loss
-    #         # train_acc += batch_acc
-    #         pre_index += batch_size
-    #         preds_frq_steps[index*batch_size : (index+1)*batch_size, :] = batch_preds
-    #         index += 1
-    #         if step%freq == 0 :
-    #             loss = train_loss/freq # average loss
-    #             # acc = train_acc/freq # average accuracy
-    #             auroc = auroc_generator(all_batch_labels, all_batch_preds)
-    #             precision, recall, f1 = prf_generator(all_batch_labels, all_batch_preds)
-    #             all_batch_preds = all_batch_labels = np.zeros((0, 14))
-    #             train_loss = 0.0
-    #             # train_acc = 0.0
-    #             # train_summary = tf.Summary(value=[tf.Summary.Value(tag='train_loss', simple_value=loss),
-    #             #                                   tf.Summary.Value(tag='train_accuracy', simple_value=acc)])
-    #
-    #             # labels = y_train[(step - freq)*batch_size : step*batch_size, :]
-    #             # cond_count = np.sum(labels[:, 1])
-    #             # if cond_count>0:
-    #             #     auroc_0 = roc_auc_score(labels[:, 0], preds_frq_steps[:, 0])
-    #             #     auroc_1 = roc_auc_score(labels[:, 1], preds_frq_steps[:, 1])
-    #             # else:
-    #             #     auroc_1 = auroc_0 = 0
-    #             # preds_frq_steps = np.round(preds_frq_steps)
-    #
-    #             # precision, recall, f1, _ = precision_recall_fscore_support(labels, preds_frq_steps)
-    #
-    #             # test_acc, test_loss, test_summary = Evaluate(sess)
-    #             train_summary = tf.Summary(value=[tf.Summary.Value(tag='Mean_loss', simple_value=loss)])
-    #             train_writer.add_summary(train_summary, iteration*(epoch-1) + step)
-    #
-    #             for cond in range(class_num):
-    #                 with tf.name_scope('AUROC'):
-    #                     summary_tr = tf.Summary(
-    #                         value=[tf.Summary.Value(tag='AUROC_' + conditions[cond],
-    #                                                 simple_value=auroc[cond])])
-    #                     train_writer.add_summary(summary_tr, iteration*(epoch-1) + step)
-    #                 with tf.name_scope('Precision'):
-    #                     summary_tr = tf.Summary(
-    #                         value=[tf.Summary.Value(tag='Precision_' + conditions[cond],
-    #                                                 simple_value=precision[cond])])
-    #                     train_writer.add_summary(summary_tr, iteration*(epoch-1) + step)
-    #                 with tf.name_scope('Recall'):
-    #                     summary_tr = tf.Summary(
-    #                         value=[tf.Summary.Value(tag='Recall_' + conditions[cond],
-    #                                                 simple_value=recall[cond])])
-    #                     train_writer.add_summary(summary_tr, iteration*(epoch-1) + step)
-    #                 with tf.name_scope('F1_score'):
-    #                     summary_tr = tf.Summary(
-    #                         value=[tf.Summary.Value(tag='F1_' + conditions[cond],
-    #                                                 simple_value=f1[cond])])
-    #                     train_writer.add_summary(summary_tr, iteration*(epoch-1) + step)
-    #
-    #             summary_tr = tf.Summary(value=[tf.Summary.Value(tag='AUROC/Mean_AUROC',
-    #                                                             simple_value=np.mean(auroc)),
-    #                                            tf.Summary.Value(tag='Precision/Mean_Precision',
-    #                                                             simple_value=np.mean(precision)),
-    #                                            tf.Summary.Value(tag='Recall/Mean_Recall',
-    #                                                             simple_value=np.mean(recall)),
-    #                                            tf.Summary.Value(tag='F1/Mean_F1',
-    #                                                             simple_value=np.mean(f1))
-    #                                            ])
-    #             train_writer.add_summary(summary_tr, iteration * (epoch - 1) + step)
-    #
-    #             # summary = sess.run(merged, feed_dict=train_feed_dict)
-    #             # train_writer.add_summary(summary, iteration * (epoch - 1) + step)
-    #             # train_writer.add_summary(summary=summary, global_step=step*epoch)
-    #             # summary_writer.add_sum
-    #             # mary(summary=test_summary, global_step=step)
-    #             # summary_writer.flush()
-    #             # preds_frq_steps = np.zeros((batch_size*freq, class_num))
-    #             index = 0
-    #             print("Atlc\tCrdmg\tEffus\tInflt\tMass\tNodle\tPnum\tPntrx\tConsd"
-    #                   "\tEdma\tEmpys\tFbrss\tTkng\tHrna\t|Avg.\t|Loss\t|Step\t|Epoch")
-    #             print(
-    #             '{0:.2f}\t|{1:.2f}\t|{2:.2f}\t|{3:.2f}\t|{4:.2f}\t|{5:.2f}\t|{6:.2f}\t|{7:.2f}\t|{8:.2f}\t|{9:.2f}\t'
-    #             '|{10:.2f}\t|{11:.2f}\t|{12:.2f}\t|{13:.2f}\t|{14:.2f}\t|{15:.2f}\t|{16}\t|{17}'
-    #             .format(auroc[0], auroc[1], auroc[2], auroc[3], auroc[4], auroc[5], auroc[6], auroc[7], auroc[8],
-    #                     auroc[9], auroc[10], auroc[11], auroc[12], auroc[13], np.mean(auroc), loss, step, epoch))
-    #
-    #
-    #             # with open('logs.txt', 'a') as f :
-    #             #     f.write(line)
-    #     test_auroc, test_precision, test_recall, test_f1, test_loss = Evaluate(sess, y_test.shape[0]/batch_size)
-    #     train_summary = tf.Summary(value=[tf.Summary.Value(tag='Mean_loss', simple_value=test_loss)])
-    #     test_writer.add_summary(train_summary, iteration * (epoch - 1) + step)
-    #     for cond in range(class_num):
-    #         with tf.name_scope('AUROC'):
-    #             summary_tr = tf.Summary(
-    #                 value=[tf.Summary.Value(tag='AUROC_' + conditions[cond],
-    #                                         simple_value=test_auroc[cond])])
-    #             test_writer.add_summary(summary_tr, iteration * (epoch - 1) + step)
-    #         with tf.name_scope('Precision'):
-    #             summary_tr = tf.Summary(
-    #                 value=[tf.Summary.Value(tag='Precision_' + conditions[cond],
-    #                                         simple_value=test_precision[cond])])
-    #             test_writer.add_summary(summary_tr, iteration * (epoch - 1) + step)
-    #         with tf.name_scope('Recall'):
-    #             summary_tr = tf.Summary(
-    #                 value=[tf.Summary.Value(tag='Recall_' + conditions[cond],
-    #                                         simple_value=test_recall[cond])])
-    #             test_writer.add_summary(summary_tr, iteration * (epoch - 1) + step)
-    #         with tf.name_scope('F1_score'):
-    #             summary_tr = tf.Summary(
-    #                 value=[tf.Summary.Value(tag='F1_' + conditions[cond],
-    #                                         simple_value=test_f1[cond])])
-    #             test_writer.add_summary(summary_tr, iteration * (epoch - 1) + step)
-    #
-    #     summary_tr = tf.Summary(value=[tf.Summary.Value(tag='AUROC/Mean_AUROC',
-    #                                                     simple_value=np.mean(test_auroc)),
-    #                                    tf.Summary.Value(tag='Precision/Mean_Precision',
-    #                                                     simple_value=np.mean(test_precision)),
-    #                                    tf.Summary.Value(tag='Recall/Mean_Recall',
-    #                                                     simple_value=np.mean(test_recall)),
-    #                                    tf.Summary.Value(tag='F1/Mean_F1',
-    #                                                     simple_value=np.mean(test_f1))
-    #                                    ])
-    #     test_writer.add_summary(summary_tr, iteration * (epoch - 1) + step)
-    #     print('---------------------------------------Validation----------------------------------------------')
-    #     print("Atlc\tCrdmg\tEffus\tInflt\tMass\tNodle\tPnum\tPntrx\tConsd"
-    #           "\tEdma\tEmpys\tFbrss\tTkng\tHrna\t|Avg.\t|Loss\t|Step")
-    #     print(
-    #         '{0:.2f}\t|{1:.2f}\t|{2:.2f}\t|{3:.2f}\t|{4:.2f}\t|{5:.2f}\t|{6:.2f}\t|{7:.2f}\t|{8:.2f}\t|{9:.2f}\t'
-    #         '|{10:.2f}\t|{11:.2f}\t|{12:.2f}\t|{13:.2f}\t|{14:.2f}\t|{15:.2f}\t|{16}'
-    #             .format(test_auroc[0], test_auroc[1], test_auroc[2], test_auroc[3], test_auroc[4], test_auroc[5], test_auroc[6], test_auroc[7], test_auroc[8],
-    #                     test_auroc[9], test_auroc[10], test_auroc[11], test_auroc[12], test_auroc[13], np.mean(test_auroc), test_loss, step))
-    #     # test_cond_count = np.sum(y_test[:,1])
-    #     # line = "epoch: %d/%d, step: %d, \ntest_loss: %.4f, test_acc: %.4f, test_precision_cond: %.4f, test_precision_no_cond: %.4f, test_recall_cond: %.4f, test_recall_no_cond: %.4f, test_auroc:%.4f," \
-    #     #        " #conditions: %d/%d \n" % (
-    #     #     epoch, total_epochs, step, test_loss, test_acc, precision[1], precision[0], recall[1], recall[0], auroc_1, test_cond_count, y_test.shape[0])
-    #     # print(line)
-    #
-    #     save_path = './model/'+currentDT.strftime("%Y-%m-%d_%H-%M-%S")
-    #     if not os.path.exists(save_path):
-    #         os.makedirs(save_path)
-    #     saver.save(sess=sess, save_path= save_path +'/densenet.ckpt')
-    # train_writer.close()
-    # test_writer.close()
+# save features
+h5f = h5py.File('features_from_densenet.h5', 'w')
+h5f.create_dataset('all_feats', data=all_feats)
+h5f.create_dataset('image_name_list', data=image_name_list)
+h5f.close()
