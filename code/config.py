@@ -16,7 +16,7 @@ parser.add_argument('--path_to_videos', default=projDIR + '/animations/', help='
 
 #
 parser.add_argument('--load_warped_gaze', default=True, help='loads the saved warped gazes')
-parser.add_argument('--prepare_data', default=False, help='converts the warped data to sub-sequences if True'
+parser.add_argument('--prepare_data', default=True, help='converts the warped data to sub-sequences if True'
                                                           'otherwise loads the already-saved sub-sequences')
 parser.add_argument('--load_img_sub_count', default=True, help='loads the dictionary containing images and '
                                                                'sub-sequence counts (in each cluster)')
