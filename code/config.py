@@ -16,7 +16,7 @@ parser.add_argument('--path_to_videos', default=projDIR + '/animations/', help='
 
 #
 parser.add_argument('--load_warped_gaze', default=True, help='loads the saved warped gazes')
-parser.add_argument('--prepare_data', default=True, help='converts the warped data to sub-sequences if True'
+parser.add_argument('--prepare_data', default=False, help='converts the warped data to sub-sequences if True'
                                                           'otherwise loads the already-saved sub-sequences')
 parser.add_argument('--load_img_sub_count', default=True, help='loads the dictionary containing images and '
                                                                'sub-sequence counts (in each cluster)')
@@ -28,7 +28,7 @@ parser.add_argument('--n_cluster', default=350, help='number of clusters in Kmea
 
 # Random Forrest Classifier
 parser.add_argument('--n_estimators', default=1000, help='The number of trees in the forest')
-parser.add_argument('--max_depth', default=5, help='The maximum depth of the tree')
+parser.add_argument('--max_depth', default=3, help='The maximum depth of the tree')
 parser.add_argument('--max_features', default=0.11, help='#features to consider when looking for the best split')
 parser.add_argument('--num_run', default=1, help='number of times running the classifier to get the avg. accuracy')
 

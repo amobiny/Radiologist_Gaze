@@ -1,12 +1,15 @@
 import cv2
 import h5py
 import matplotlib.pyplot as plt
+
+from my_plots import plot_box
 from utils import *
 from gazeWarp import *
 import operator
 import cPickle as pickle
 from config import args
 from classifier import *
+from config import args
 
 
 # gaze_file_names = os.listdir(args.all_gaze_path)
@@ -107,70 +110,192 @@ def resize_img_gaze(imag, gaze, size):
 # with open('img_gaze_feat_dict.pkl', 'rb') as inputs:
 #     res_img_gaze_dict = pickle.load(inputs)
 # print('dictionary of image name:(image, gaze, features) loaded')
-#
-#
-#
-# # match the gaze with extracted features and save the corresponding feature vectors for each image
+
+
+
+# match the gaze with extracted features and save the corresponding feature vectors for each image
+# 418 is the 416 features + (x, y) positions
 # feat_dict = {}
 # for image_name, value in res_img_gaze_dict.items():
-#     all_feats = np.zeros((0, 416))
+#     all_feats = np.zeros((0, 418))
 #     gaze = value[1]
 #     feat = value[-1]
 #     for x, y in gaze:
 #         if x < 256 and y < 256:
-#             all_feats = np.concatenate((all_feats, feat[x, y, :].reshape(1, 416)), axis=0)
+#             pos = np.array([x, y])
+#             new_feat = np.concatenate((feat[x, y, :].reshape(1, 416), pos.reshape(1, 2)), axis=1)
+#             all_feats = np.concatenate((all_feats, new_feat), axis=0)
 #     feat_dict[image_name] = all_feats
 #
 # with open('image_extracted_features.pkl', 'wb') as output:
 #     pickle.dump(feat_dict, output, -1)
 
-with open('image_extracted_features.pkl', 'rb') as inputs:
-    img_dict = pickle.load(inputs)
-print('Data loaded')
-#
-# feat_img_name = []
-# data = np.zeros((0, 416))
-# for image_name, feats in img_dict.items():
-#     data = np.concatenate((data, feats), axis=0)
-#     feat_img_name.extend([image_name for i in range(feats.shape[0])])
-#
+# #
+# with open('image_extracted_features.pkl', 'rb') as inputs:
+#     feat_dict = pickle.load(inputs)
+# print('Data loaded; containing: image_name: features (of size: [#samples, 418])')
+# #
+# # feat_img_name = []
+# # data = np.zeros((0, 418))
+# # for image_name, feats in feat_dict.items():
+# #     data = np.concatenate((data, feats), axis=0)
+# #     feat_img_name.extend([image_name for i in range(feats.shape[0])])
+# #
 # # # save data (#samples, #features) and the corresponding name of samples (of length #samples)
-# h5f = h5py.File('DATA.h5', 'w')
-# h5f.create_dataset('data', data=data)
-# h5f.create_dataset('feat_img_name', data=feat_img_name)
+# # h5f = h5py.File('DATA.h5', 'w')
+# # h5f.create_dataset('data', data=data)
+# # h5f.create_dataset('feat_img_name', data=feat_img_name)
+# # h5f.close()
+#
+#
+# h5f = h5py.File('DATA.h5', 'r')
+# data = h5f['data'][:]
+# feat_img_name = list(h5f['feat_img_name'][:])
 # h5f.close()
-
-h5f = h5py.File('DATA.h5', 'r')
-data = h5f['data'][:]
-feat_img_name = list(h5f['feat_img_name'][:])
-h5f.close()
-
+# #
 n_clusters = 100
-kmeans = KMeans(n_clusters=n_clusters, init='k-means++', random_state=0, max_iter=1000, n_init=10).fit(data)
-print('Done with Clustering')
+# kmeans = KMeans(n_clusters=n_clusters, init='k-means++', random_state=0, max_iter=1000, n_init=20).fit(data[:, :416])
+# print('Done with Clustering')
+# centers = kmeans.cluster_centers_
+#
+# # add the predicted labels to the dictionary of data
+# for image_name, feats in feat_dict.items():
+#     labels = kmeans.fit_predict(feats[:, :416])
+#     feat_dict[image_name] = np.concatenate((feats, labels.reshape(-1, 1)), axis=1)
+# print('Predicted labels added to the dictionary of data (feat_data)')
+#
+#
+# print('Creating histograms...')
+# img_hist_dict = {}
+# for image_name, feat_labels in feat_dict.items():
+#     labels = feat_labels[:, -1]
+#     unq_lbl, lbl_count = np.unique(labels, return_counts=True)
+#     img_hist_dict[image_name] = np.zeros(n_clusters)
+#     for i in range(len(unq_lbl)):
+#         img_hist_dict[image_name][int(unq_lbl[i])] = lbl_count[i]
+#     img_hist_dict[image_name] /= np.sum(lbl_count)
+# print('Dictionary of histograms created; image_name: histogram (of size #clusters)')
+#
+#
+# # adding labels to the dictionary
+# with open(args.label_csv, 'r') as p:
+#     reader = csv.reader(p, delimiter='\t')
+#     reader.next()
+#     lines = [lin for lin in reader]
+#     img_name_list = [l[0].upper() for l in lines]
+#
+# for i in range(len(img_name_list)):
+#     image_name = img_name_list[i]
+#     if image_name in img_hist_dict.keys():
+#         y = np.array([int(lines[i][j]) for j in range(1, 16)])
+#         img_hist_dict[image_name] = np.append(img_hist_dict[image_name], y)
+# print('Dictionary of histograms created; image_name: histogram (of size #clusters+15=115), ')
+# # 15 labels added to the histograms
+#
+# # add the images and their corresponding gaze sequence to the img_hist_dict
+# for image_name, value in res_img_gaze_dict.items():
+#     image = value[0]
+#     gaze_data = value[1]
+#     img_hist_dict[image_name] = img_hist_dict[image_name] + [image] + [gaze_data]
 
-pred_dict = {}
-for image_name, feats in img_dict.items():
-    labels = kmeans.fit_predict(feats)
-    pred_dict[image_name] = labels
+# with open('img_hist_data_100.pkl', 'wb') as output:
+#     pickle.dump([img_hist_dict, feat_dict, centers], output, -1)
+# print('Histograms created and saved')
+# # img_hist_dict::: image_name: list of length 3 including:
+#                                   [image(256, 256) ,
+#                                   hist+label of size n_cluster+15=115,
+#                                   gaze_data (list of different lengths including the x,y positions)]
+# # feat_dict::::::: image_name: features of size: [#samples, 419] where 419 = #features(416) + [x,y] + cluster_prediction
+# # centers: cluster centers of size (n_cluster=100, dim=416)
 
-print('Creating histograms...')
-img_hist_dict = {}
-for image_name, labels in pred_dict.items():
-    unq_lbl, lbl_count = np.unique(labels, return_counts=True)
-    img_hist_dict[image_name] = np.zeros(n_clusters)
-    for i in range(len(unq_lbl)):
-        img_hist_dict[image_name][unq_lbl[i]] = lbl_count[i]
-    img_hist_dict[image_name] /= np.sum(lbl_count)
-
-with open('img_hist_data_100).pkl', 'wb') as output:
-    pickle.dump(img_hist_dict, output, -1)
-print('Histograms created and saved')
+# --------------------------------Visualize image, gaze, histogram--------------------------------------
 
 
+def img_gaze_hist_plot(img, img_name, gaze, hist, label):
+    fig, axs = plt.subplots(nrows=1, ncols=2)
+    fig.set_size_inches(12, 6)
+    ax = axs[0]
+    x = []
+    y = []
+    for point in gaze:
+        x.append(point[0])
+        y.append(point[1])
+    ax.plot(x, y)
+    ax.plot(x[-1], y[-1], 'o')
+    ax.set_title(img_name)
+    # ax.set_xlim(0, 256)
+    # ax.set_ylim(0, 256)
+    ax.imshow(img, cmap='gray')
+    ax = axs[1]
+    ax.bar(range(len(hist)), hist)
+    conds = ['Cardio. ', 'Infilt. ', 'Nodule ', 'Normal ', 'PlurEff. ', 'Pneumtrx.']
+    cond_lbl = np.where(label == 1)[0]
+    tit = [conds[a] for a in cond_lbl]
+    img_title = '-'.join(tit)
+    ax.set_title(img_title)
+    plt.show()
+
+
+def prepare_data(img_dict, n_clust):
+    img_name_list = []
+    data = np.zeros((0, n_clust))
+    label = np.zeros((0, 15))
+    for img_name, info in img_dict.items():
+        img_name_list.append(img_name)
+        data = np.concatenate((data, info[0][:n_clust].reshape(1, -1)), axis=0)
+        label = np.concatenate((label, info[0][n_clust:].reshape(1, -1)), axis=0)
+    return data, label, img_name_list
+
+
+with open("img_hist_data_100.pkl", 'rb') as inputs:
+    img_hist_dict, feat_dict, centers = pickle.load(inputs)
+print('Data loaded')
+
+# ---This part is to plot example images, gaze, and corresponding histograms
+# image_number_to_plot = 7
+# image_name = img_hist_dict.keys()[image_number_to_plot]
+# image = img_hist_dict[image_name][1]
+# gaze_data = img_hist_dict[image_name][-1]
+# hist_data = img_hist_dict[image_name][0][:n_clusters]
+# label = img_hist_dict[image_name][0][n_clusters:n_clusters+6]
+# img_gaze_hist_plot(image, image_name, gaze_data, hist_data, label)
+
+# 0.Cardio, 1.Infilt, 2.Nodule, 3.Normal, 4.PlurEff, 5.Pneumtrx, 6.Carol, 7.Darshan, 8.Diana
+# 9.Cardio, 10.Infilt, 11.Nodule, 12. Normal, 13.PlurEff, 14.Pneumtrx,
+
+# --------------------------------Start Classification--------------------------------------
+x, y, image_name_list = prepare_data(img_hist_dict, n_clusters)
+classifier = RandomForestClassifier(n_estimators=args.n_estimators,
+                                    max_depth=args.max_depth,
+                                    oob_score=True,
+                                    max_features=args.max_features)
+# x_train, y_train, x_test, y_test = train_test_split(x, y[:, 2])
+x_train = x
+y_train = y[:, 2]
+classifier.fit(x_train, y_train)
+result = classifier.predict(x_train)
+y_prob_test = classifier.predict_proba(x_train)
+feat_imp = classifier.feature_importances_
+imp_feat, imp_feat_idx = np.sort(feat_imp), np.argsort(feat_imp)
+imp_centers = centers[imp_feat_idx] # in ascending order
+cumsum_feat = np.cumsum(np.flip(imp_feat, 0))
+classifier.oob_score_
+print('Classifier Trained & Feature importance generated')
+accuracy = np.sum(np.equal(np.reshape(result, (-1, 1)),
+                           np.reshape(y_train, (-1, 1)))) / np.float(result.size)
+print('accuracy= {0:.02%}'.format(accuracy))
+# Let's see where is these important features placed on images
 
 
 
+
+
+# image_name = 'DIANA_CXR3416_IM-1651-0001-0001'
+# image_name = 'DIANA_CXR728_IM-2287-1001'
+image_name = 'CAROL_CXR3416_IM-1651-0001-0001'
+# percentile = np.argmax(cumsum_feat > 0.2)
+which_feature = 2  # up to number of clusters
+plot_box(img_hist_dict, feat_dict, image_name, imp_centers, imp_feat_idx, num=which_feature)
 
 
 print()

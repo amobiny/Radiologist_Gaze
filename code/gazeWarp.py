@@ -70,7 +70,7 @@ def dict_creator(path, files_list):
     return diction
 
 
-def warping(anno_dic, gaze_dic, ref_img_name, gaze_path=None, save=False):
+def warping(anno_dic, gaze_dic, ref_img_name, gaze_path=None, save=False, image_path=None):
     '''
     Warps the gaze coordinates of the required image to the plane of a reference image using Thin Plate Spline
     transformation and saves the resultant coordinates in a new csv file.
@@ -92,6 +92,15 @@ def warping(anno_dic, gaze_dic, ref_img_name, gaze_path=None, save=False):
             warp = eng.fnval(tps, gaze)
             warp_ = np.transpose(np.array(warp)).tolist()
             warp_ = [[int(point[0]), int(point[1])] for point in warp_]
+
+            radiologist_name = img.split('_')[0].upper()
+            img_name = img.split(radiologist_name)[1][1:]
+            img_raw = eng.imread(image_path + '/' + img_name + '.jpg')
+            print("stuck here")
+            img_warped = eng.rbfwarp2d(img_raw, ref_annos, annotations, 'thin')
+            print(img_name)
+            img_warped_ = np.transpose(np.array(img_warped)).tolist()
+
             if save is True:
                 with open(gaze_path + 'output_warped/' + img + '.csv', 'wb') as cs:
                     writer = csv.writer(cs, delimiter=',')

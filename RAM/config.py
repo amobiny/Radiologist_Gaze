@@ -6,8 +6,8 @@ class Config(object):
 
     # glimpse network
     convert_ratio       = 0.8
-    original_size       = 256
-    new_size            = 256
+    original_size       = 128
+    new_size            = 128
     num_channels        = 1  # remove later
 
     glimpse_size        = 12
@@ -30,7 +30,7 @@ class Config(object):
     batch_size          = 16
     eval_batch_size     = 50
     num_epoch           = 600
-    lr_start            = 5e-4
+    lr_start            = 1e-3
     lr_min              = 1e-5
     loc_std             = 0.05
     max_grad_norm       = 5.
@@ -42,7 +42,7 @@ class Config(object):
     cell_out_size       = cell_size
 
     # task
-    num_classes         = 5
+    num_classes         = 1
     n_distractors       = 4 # nr of digit distractors for cluttered task
 
     # monte carlo sampling

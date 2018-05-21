@@ -24,8 +24,8 @@ import os
 # os.environ["CUDA_VISIBLE_DEVICES"] = "2, 3"
 
 if __name__ == '__main__':
-    a='./experiments/task=org256x256_model=ram_conv=True_n_glimpses=50_fovea=12x12_std=0.05_123330_context=True_lr=0.0005-1e-05_p_labels=1_5/'
-    # a= None
+    # a='./experiments/task=org256x256_model=ram_conv=True_n_glimpses=50_fovea=12x12_std=0.05_123330_context=True_lr=0.0005-1e-05_p_labels=1_5/'
+    a= None
     # ----- parse command line -----
     parser = argparse.ArgumentParser()
     parser.add_argument('--task', '-t', type=str, default='org',
@@ -73,7 +73,7 @@ if __name__ == '__main__':
     config.balance = FLAGS.balance
 
     # log directory
-    FLAGS.logdir = "./experiments/task={}{}x{}_model={}_conv={}_n_glimpses={}_fovea={}x{}_std={}_{}_context={}_lr={}-{}_p_labels={}_5".format(
+    FLAGS.logdir = "./experiments/task={}{}x{}_model={}_conv={}_n_glimpses={}_fovea={}x{}_std={}_{}_context={}_lr={}-{}_p_labels={}_6".format(
         FLAGS.task, config.new_size, config.new_size,
         FLAGS.model, config.convnet, config.num_glimpses, config.glimpse_size, config.glimpse_size,
         config.loc_std, time_str, config.use_context, config.lr_start, config.lr_min,
@@ -85,6 +85,7 @@ if __name__ == '__main__':
     # data
     data = chest_xray(config)
     # config.w_plus = np.array([1., 1., 1., 1., 1.]).astype(np.float32)
+    # config.w_plus = 1.
     config.w_plus = (data.y_train.shape[0] - np.sum(data.y_train, axis=0)) / (np.sum(data.y_train, axis=0))
 
     # init model

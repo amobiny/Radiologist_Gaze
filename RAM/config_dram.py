@@ -47,7 +47,7 @@ class Config(object):
     cell_out_size       = cell_size
 
     # task
-    num_classes         = 10
+    num_classes         = 1
     n_distractors       = 4         # nr of digit distractors for cluttered task
 
     distractor_range    = (4,50)    # (lower,upper) limit of distractors for variable clutter tasks

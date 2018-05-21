@@ -38,10 +38,10 @@ class RAM(object):
 
         if self.config.convnet:
             print 'Glimpse sensor is Convnet.'
-            from ConvNet import GlimpseNetwork, LocNet          # glimpse net is conv net
+            from ConvNet import GlimpseNetwork, LocNet  # glimpse net is conv net
         else:
             print 'Glimpse sensor is fully connected.'
-            from GlimpseNetwork import GlimpseNetwork, LocNet   # glimpse net if fully connected
+            from GlimpseNetwork import GlimpseNetwork, LocNet  # glimpse net if fully connected
 
         # glimpse network
         with tf.variable_scope('glimpse_net'):
@@ -80,7 +80,8 @@ class RAM(object):
         self.init_state = self.lstm_cell.zero_state(self.N, tf.float32)
 
         # output: list of num_glimpses + 1
-        self.outputs, _ = seq2seq.rnn_decoder(self.inputs, self.init_state, self.lstm_cell, loop_function=get_next_input)
+        self.outputs, _ = seq2seq.rnn_decoder(self.inputs, self.init_state, self.lstm_cell,
+                                              loop_function=get_next_input)
         get_next_input(self.outputs[-1], 0)
         # ---------------------------------------
 
@@ -141,18 +142,20 @@ class RAM(object):
 
         # cross-entropy
         if self.config.weighted_loss:
-            # xent = tf.nn.weighted_cross_entropy_with_logits(targets=self.labels_ph, logits=self.logits,
-            #                                                 pos_weight=self.config.w_plus)
-            self.xent = self.cross_entropy_loss(self.config.w_plus, weighted_loss=self.config.weighted_loss)
+            xent = tf.nn.weighted_cross_entropy_with_logits(targets=self.labels_ph, logits=self.logits,
+                                                            pos_weight=self.config.w_plus)
+            self.xent = tf.reduce_mean(xent)
+            # self.xent = self.cross_entropy_loss(self.config.w_plus, weighted_loss=self.config.weighted_loss)
         else:
             xent = tf.nn.sigmoid_cross_entropy_with_logits(labels=self.labels_ph, logits=self.logits)
             self.xent = tf.reduce_mean(xent)
         self.pred_labels = tf.cast(tf.round(self.softmax), tf.float32)
 
         # REINFORCE: 0/1 reward
-        self.reward = tf.reduce_mean(tf.cast(tf.equal(self.pred_labels, self.labels_ph), tf.float32), axis=1)
-
-        self.rewards = tf.expand_dims(self.reward, 1)  # [batch_sz, 1]
+        # self.reward = tf.reduce_mean(tf.cast(tf.equal(self.pred_labels, self.labels_ph), tf.float32), axis=1)
+        self.reward = tf.cast(tf.equal(self.pred_labels, self.labels_ph), tf.float32)
+        self.rewards = self.reward
+        # self.rewards = tf.expand_dims(self.reward, 1)  # [batch_sz, 1]
         self.rewards = tf.tile(self.rewards, (1, self.config.num_glimpses))  # [batch_sz, timesteps]
         self.logll = loglikelihood(self.loc_mean_arr, self.sampled_loc_arr, self.config.loc_std)
         self.advs = self.rewards - tf.stop_gradient(self.baselines)
