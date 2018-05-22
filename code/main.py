@@ -6,6 +6,7 @@ import cPickle as pickle
 from config import args
 from classifier import *
 import matplotlib.patches as patches
+from scipy.stats import chisquare
 
 gaze_file_names = os.listdir(args.all_gaze_path)
 raw_gaze_dict = gazeExtractor(gaze_file_names, args.all_gaze_path)
@@ -62,19 +63,21 @@ if args.prepare_data:
         pickle.dump([x, y, centers, carol_subs, darshan_subs, diana_subs], output, -1)
     print('Input Generated and Saved')
 else:
+    # with open('Data.pkl', 'rb') as inputs:
+    #     x, y, centers, carol_subs, darshan_subs, diana_subs, img_sub_dict, image_names = pickle.load(inputs)
+    # print('Input Loaded')
     with open('Data.pkl', 'rb') as inputs:
-        x, y, centers, carol_subs, darshan_subs, diana_subs, img_sub_dict, image_names = pickle.load(inputs)
+        _, _, _, _, _, _, img_sub_dict, _ = pickle.load(inputs)
     print('Input Loaded')
-
 # condition_num = 0
 
 # 0.Cardio, 1.Infilt, 2.Nodule, 3.Normal, 4.PlurEff, 5.Pneumtrx, 6.Carol, 7.Darshan, 8.Diana
 # 9.Cardio, 10.Infilt, 11.Nodule, 12. Normal, 13.PlurEff, 14.Pneumtrx,
 # sorted_cluster_center_imp = run_classifier(x, np.reshape(np.abs(y[:, condition_num]-y[:, condition_num+9]), (264, -1)), centers)
 
-x_new, y_new = x, y
+# x_new, y_new = x, y
 # x_new, y_new = pick_radiologist(x, y, image_names, radiologist_name='DARSHAN')
-sorted_cluster_center_imp, classifier, percentile = run_classifier(x_new, y_new[:, 2], centers, split=True)
+# sorted_cluster_center_imp, classifier, percentile = run_classifier(x_new, y_new[:, 2], centers, split=True)
 # returns array of size (350, 54)
 
 # carol_cluster_count = get_cluster_count(sorted_cluster_center_imp, carol_subs)  # list of 350 tuples
@@ -118,8 +121,91 @@ def cluster_num_finder(sorted_center, img_dict):
 with open('cluster_num_dict.pkl', 'rb') as inputs:
     sorted_cluster_center_imp, seq_cluster_label_dict = pickle.load(inputs)
 
+# adding labels to the dictionary
+with open(args.label_csv, 'r') as p:
+    reader = csv.reader(p, delimiter='\t')
+    reader.next()
+    lines = [lin for lin in reader]
+    img_name_list = [l[0].upper() for l in lines]
 
-def plot_on_original_image(img_name, f_num, img_dict, label_dict, output_dir):
+img_label_dict = {}
+nodule_label_dict = {}
+feature_count_dict = {}
+for i in range(len(img_name_list)):
+    image_name = img_name_list[i]
+    img_label_dict[image_name] = np.array([int(lines[i][j]) for j in range(1, 16)])
+    nodule_label_dict[image_name] = np.array([img_label_dict[image_name][2], img_label_dict[image_name][11]])
+    if image_name in seq_cluster_label_dict.keys():
+        feature_count_dict[image_name] = np.zeros(args.n_cluster)
+        unqs = np.unique(seq_cluster_label_dict[image_name], return_counts=True)
+        for j in range(len(unqs[0])):
+            feature_count_dict[image_name][int(unqs[0][j])] = unqs[1][j]
+
+
+def hist_generator(counts, n_bins):
+    histt = np.zeros(n_bins)
+    unqs = np.unique(counts, return_counts=True)
+    for i in range(len(unqs[0])):
+        histt[int(unqs[0][i])] = unqs[1][i]
+    return histt
+
+
+pvals = np.zeros(args.n_cluster)
+counts = np.zeros((args.n_cluster, 4))
+counts_percentage = np.zeros((args.n_cluster, 4))
+for which_feature in range(args.n_cluster):
+    correct_count, incorrect_count = np.array([]), np.array([])
+    for image_name in feature_count_dict.keys():
+        if nodule_label_dict[image_name][0] == nodule_label_dict[image_name][1]:
+            correct_count = np.append(correct_count, feature_count_dict[image_name][which_feature])
+        else:
+            incorrect_count = np.append(incorrect_count, feature_count_dict[image_name][which_feature])
+
+    a = np.sum(correct_count == 0)
+    b = np.sum(correct_count > 0)
+    aa = np.sum(incorrect_count == 0)
+    bb = np.sum(incorrect_count > 0)
+    _, pvals[which_feature] = chisquare([a*100.0 / correct_count.shape, b*100.0 / correct_count.shape],
+                                        f_exp=[aa*100.0 / incorrect_count.shape, bb*100.0 / incorrect_count.shape])
+    counts[which_feature, :] = np.array([a, b, aa, bb])
+    counts_percentage[which_feature, :] = np.array([a*100.0 / correct_count.shape, b*100.0 / correct_count.shape,
+                                                    aa*100.0 / incorrect_count.shape, bb*100.0 / incorrect_count.shape]).reshape(1,4)
+
+sig_feat_idx = np.where(pvals < 0.001)[0]
+ref_image = plt.imread(args.proj_dir + '/images/' + 'CXR129_IM-0189-1001' + '.jpg')
+
+for feat_idx in sig_feat_idx:
+    fig, axs = plt.subplots(nrows=1, ncols=2)
+    fig.set_size_inches(12, 6)
+    gaze = sorted_cluster_center_imp[feat_idx]
+    x = []
+    y = []
+    for i in range(0, len(gaze) - 1, 2):
+        x.append(gaze[i])
+        y.append(gaze[i + 1])
+    axs[0].plot(x, y)
+    axs[0].imshow(ref_image, cmap='gray')
+    axs[0].set_title('feature # {0}, p_value={1:.6f}'.format(feat_idx, pvals[feat_idx]))
+    axs[1].bar(range(4), counts[feat_idx])
+    plt.xticks(range(4), ['cor/wo', 'cor/w', 'inc/wo', 'inc/w'], rotation='vertical')
+    plt.ylim([0, 250])
+    for i in range(4):
+        plt.text(i, 40, str(int(counts[feat_idx][i])))
+        plt.text(i, 20, '(' + str(int(counts_percentage[feat_idx][i])) + '%)')
+    plt.savefig('/home/cougarnet.uh.edu/amobiny/Desktop/Radiologist_Gaze/significant_features/feature_{}.png'.format(feat_idx))
+
+# num_bins = int(np.max(np.append(incorrect_count, correct_count))) + 1
+# inc_histt = hist_generator(incorrect_count, num_bins)
+# cor_histt = hist_generator(correct_count, num_bins)
+
+# plt.figure()
+# plt.hist(incorrect_count, bins=num_bins, label='incorrect')
+# plt.hist(correct_count, bins=num_bins, label='correct')
+# plt.legend()
+# plt.show()
+
+
+def plot_on_original_image(img_name, f_num, img_dict, label_dict, output_dir, x_l):
     radiologist_name = img_name.split('_')[0].upper()
     img_n = img_name.split(radiologist_name)[1][1:]
     image = plt.imread(args.proj_dir + '/warped_images/' + img_n + '.jpg')
@@ -127,9 +213,9 @@ def plot_on_original_image(img_name, f_num, img_dict, label_dict, output_dir):
     labels = label_dict[img_name]
     sub_idx = list(np.where(labels == f_num)[0].astype(int))
     if not len(sub_idx):
-        plt.imshow(image, cmap='gray')
+        # plt.imshow(image, cmap='gray')
         print('no subsequence from feature_number={0} in image {1}'.format(f_num, img_name))
-        plt.title(img_name + ' has no subsecuence in feature #' + str(f_num))
+        # plt.title(img_name + ' has no subsecuence in feature #' + str(f_num))
     else:
         os.makedirs(output_dir+img_name)
         new_subs = [subs[a] for a in sub_idx]
@@ -146,7 +232,8 @@ def plot_on_original_image(img_name, f_num, img_dict, label_dict, output_dir):
                     plt.figure()
                     plt.imshow(image, cmap='gray')
                     plt.plot(x, y)
-                    plt.title('subsequence #{0} (out of {1}) of feature #{2}'.format(seq_num, len(sub_idx), f_num))
+                    plt.title('{0} \n subsequence #{1} (out of {2}) of feature #{3}'.format(img_name, seq_num, len(sub_idx), f_num))
+                    plt.xlabel(x_l)
                     plt.savefig(output_dir + img_name + '/' + str(seq_num) + '_' + str(fig_num) + '.png')
                 elif fig_num == 1:
                     fig, ax = plt.subplots(nrows=1, ncols=1)
@@ -155,12 +242,14 @@ def plot_on_original_image(img_name, f_num, img_dict, label_dict, output_dir):
                     y_min, y_max = np.min(np.array(y)), np.max(np.array(y))
                     rect = patches.Rectangle((x_min, y_min), x_max-x_min, y_max-y_min, linewidth=2, edgecolor='r', facecolor='none')
                     ax.add_patch(rect)
-                    plt.title('subsequence #{0} (out of {1}) of feature #{2}'.format(seq_num, len(sub_idx), f_num))
+                    plt.title('{0} \n subsequence #{1} (out of {2}) of feature #{3}'.format(img_name, seq_num, len(sub_idx), f_num))
+                    plt.xlabel(x_l)
                     plt.savefig(output_dir + img_name + '/' + str(seq_num) + '_' + str(fig_num) + '.png')
                 elif fig_num == 2:
                     crop_image = image[y_min:y_max, x_min:x_max]
                     plt.imshow(crop_image, cmap='gray')
-                    plt.title('subsequence #{0} (out of {1}) of feature #{2}'.format(seq_num, len(sub_idx), f_num))
+                    plt.title('{0} \n subsequence #{1} (out of {2}) of feature #{3}'.format(img_name, seq_num, len(sub_idx), f_num))
+                    plt.xlabel(x_l)
                     plt.savefig(output_dir + img_name + '/' + str(seq_num) + '_' + str(fig_num) + '.png')
         # plot all interpolated
         plt.figure()
@@ -173,16 +262,23 @@ def plot_on_original_image(img_name, f_num, img_dict, label_dict, output_dir):
                 y.append(sub[jj + 1])
             plt.plot(x, y)
         plt.title('{0} has {1} subsequence in feature #{2}'.format(img_name, len(sub_idx), f_num))
+        plt.xlabel(x_l)
         plt.savefig(output_dir + img_name + '/' + '0_orig_image.png')
 
-which_feature = 349
-out_dir = '/home/cougarnet.uh.edu/amobiny/Desktop/Radiologist_Gaze/code/feat_349_nodule/'
+
+
+
+which_feature = 340
+class_label = ['no-nodule', 'nodule']
+out_dir = '/home/cougarnet.uh.edu/amobiny/Desktop/Radiologist_Gaze/code/feat_340_nodule/'
 ref_image = plt.imread(args.proj_dir + '/images/' + 'CXR129_IM-0189-1001' + '.jpg')
 gaze_img_Plotter(list(sorted_cluster_center_imp[which_feature, :]), ref_image)
 
 
 for image_name in img_sub_dict.keys():
-    plot_on_original_image(image_name, which_feature, img_sub_dict, seq_cluster_label_dict, out_dir)
+    x_label = 'NIH: ' + class_label[img_label_dict[image_name][11]] + \
+              ', Radiologist: ' + class_label[img_label_dict[image_name][2]]
+    plot_on_original_image(image_name, which_feature, img_sub_dict, seq_cluster_label_dict, out_dir, x_label)
 
 
 print()
