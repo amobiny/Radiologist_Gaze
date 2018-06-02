@@ -28,7 +28,7 @@ parser.add_argument('--n_cluster', default=350, help='number of clusters in Kmea
 
 # Random Forrest Classifier
 parser.add_argument('--n_estimators', default=1000, help='The number of trees in the forest')
-parser.add_argument('--max_depth', default=3, help='The maximum depth of the tree')
+parser.add_argument('--max_depth', default=5, help='The maximum depth of the tree')
 parser.add_argument('--max_features', default=0.11, help='#features to consider when looking for the best split')
 parser.add_argument('--num_run', default=10, help='number of times running the classifier to get the avg. accuracy')
 

@@ -7,6 +7,8 @@ from scipy import spatial
 def plot_important_features(img_dict, feat_dic, img_name, sorted_centers, sorted_feat_idx, num, n_clusters=100):
     """
 
+    :param n_clusters: number of clusters used in KMeans clustering
+    :param sorted_feat_idx:
     :param img_dict: dictionary containing all the info; including images, gaze data, histograms, etc.
     :param img_name: name of image to be plotted
     :param sorted_centers: important centers to be considered (sorted in ascending order of importance)
@@ -23,26 +25,37 @@ def plot_important_features(img_dict, feat_dic, img_name, sorted_centers, sorted
     for i in range(feat.shape[0]):
         data_point = feat[i]
         cluster_lbl = np.append(cluster_lbl, int(tree.query(data_point)[1]))
-    imp_features_idx = sorted_feat_idx[-num:]
-    mask = np.isin(cluster_lbl, imp_features_idx) # shows which points are important
-
-    fig, axs = plt.subplots(nrows=1, ncols=2)
-    fig.set_size_inches(12, 6)
-    ax = axs[0]
+    imp_features_idx = sorted_feat_idx[num]
+    mask = np.isin(cluster_lbl, imp_features_idx)   # shows which points are important
     x = []
     y = []
     for point in gaze:
         x.append(point[0])
         y.append(point[1])
+
+    fig, axs = plt.subplots(nrows=1, ncols=4)
+    fig.set_size_inches(16, 6)
+
+    ax = axs[0]
+    ax.imshow(image, cmap='gray')
+    ax.set_title(img_name)
+
+    ax = axs[1]
+    ax.imshow(image, cmap='gray')
+    for i in range(len(mask)):
+        if mask[i]:
+            ax.plot(x[i], y[i], 'o', color='hotpink')
+    ax.set_title(img_name)
+
+    ax = axs[2]
     ax.plot(x, y)
-    ax.plot(x[-1], y[-1], 'o', color='red', markersize=8)
-    ax.plot(x[0], y[0], 'o', color='lawngreen', markersize=8)
     for i in range(len(mask)):
         if mask[i]:
             ax.plot(x[i], y[i], 'o', color='hotpink')
     ax.set_title(img_name)
     ax.imshow(image, cmap='gray')
-    ax = axs[1]
+
+    ax = axs[3]
     baar = ax.bar(range(len(hist)), hist)
     for imp in imp_features_idx:
         baar[imp].set_color('hotpink')

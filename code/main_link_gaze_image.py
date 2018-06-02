@@ -153,7 +153,7 @@ def resize_img_gaze(imag, gaze, size):
 # feat_img_name = list(h5f['feat_img_name'][:])
 # h5f.close()
 # #
-n_clusters = 100
+n_clusters = 500
 # kmeans = KMeans(n_clusters=n_clusters, init='k-means++', random_state=0, max_iter=1000, n_init=20).fit(data[:, :416])
 # print('Done with Clustering')
 # centers = kmeans.cluster_centers_
@@ -164,7 +164,7 @@ n_clusters = 100
 #     feat_dict[image_name] = np.concatenate((feats, labels.reshape(-1, 1)), axis=1)
 # print('Predicted labels added to the dictionary of data (feat_data)')
 #
-#
+# #-
 # print('Creating histograms...')
 # img_hist_dict = {}
 # for image_name, feat_labels in feat_dict.items():
@@ -197,16 +197,16 @@ n_clusters = 100
 #     image = value[0]
 #     gaze_data = value[1]
 #     img_hist_dict[image_name] = img_hist_dict[image_name] + [image] + [gaze_data]
-
+#
 # with open('img_hist_data_100.pkl', 'wb') as output:
 #     pickle.dump([img_hist_dict, feat_dict, centers], output, -1)
 # print('Histograms created and saved')
-# # img_hist_dict::: image_name: list of length 3 including:
+# img_hist_dict::: image_name: list of length 3 including:
 #                                   [image(256, 256) ,
 #                                   hist+label of size n_cluster+15=115,
 #                                   gaze_data (list of different lengths including the x,y positions)]
-# # feat_dict::::::: image_name: features of size: [#samples, 419] where 419 = #features(416) + [x,y] + cluster_prediction
-# # centers: cluster centers of size (n_cluster=100, dim=416)
+# feat_dict::::::: image_name: features of size: [#samples, 419] where 419 = #features(416) + [x,y] + cluster_prediction
+# centers: cluster centers of size (n_cluster=100, dim=416)
 
 # --------------------------------Visualize image, gaze, histogram--------------------------------------
 
@@ -247,7 +247,7 @@ def prepare_data(img_dict, n_clust):
     return data, label, img_name_list
 
 
-with open("img_hist_data_100.pkl", 'rb') as inputs:
+with open("img_hist_data_500.pkl", 'rb') as inputs:
     img_hist_dict, feat_dict, centers = pickle.load(inputs)
 print('Data loaded')
 
@@ -279,7 +279,7 @@ feat_imp = classifier.feature_importances_
 imp_feat, imp_feat_idx = np.sort(feat_imp), np.argsort(feat_imp)
 imp_centers = centers[imp_feat_idx] # in ascending order
 cumsum_feat = np.cumsum(np.flip(imp_feat, 0))
-classifier.oob_score_
+# classifier.oob_score_
 print('Classifier Trained & Feature importance generated')
 accuracy = np.sum(np.equal(np.reshape(result, (-1, 1)),
                            np.reshape(y_train, (-1, 1)))) / np.float(result.size)
@@ -287,15 +287,89 @@ print('accuracy= {0:.02%}'.format(accuracy))
 # Let's see where is these important features placed on images
 
 
+def plot_important_features(img_dict, feat_dic, img_name, sorted_centers, sorted_feat_idx, num, n_clusters):
+    """
 
+    :param n_clusters: number of clusters used in KMeans clustering
+    :param sorted_feat_idx:
+    :param img_dict: dictionary containing all the info; including images, gaze data, histograms, etc.
+    :param img_name: name of image to be plotted
+    :param sorted_centers: important centers to be considered (sorted in ascending order of importance)
+    """
+    image = img_dict[img_name][1]
+    gaze = img_dict[img_name][2]                # list of length #points including [x, y] coordinates
+    hist = img_dict[img_name][0][:n_clusters] # n_cluster (100)
+    feat = feat_dic[img_name][:, :416]        # #pointsx416
+    # coords = feat_dic[image_name][:, 416:418]   # #gaze_pointsx2
+    rad_label = img_dict[img_name][0][n_clusters:n_clusters+6]
+    nih_label = img_dict[img_name][0][-6:]
+    tree = spatial.KDTree(sorted_centers)
+    cluster_lbl = np.array([])
+    for i in range(feat.shape[0]):
+        data_point = feat[i]
+        cluster_lbl = np.append(cluster_lbl, int(tree.query(data_point)[1]))
+    imp_features_idx = sorted_feat_idx[num]
+    mask = np.isin(cluster_lbl, imp_features_idx)   # shows which points are important
+    x = []
+    y = []
+    for point in gaze:
+        x.append(point[0])
+        y.append(point[1])
 
+    fig, axs = plt.subplots(nrows=1, ncols=4)
+    fig.set_size_inches(16, 6)
 
-# image_name = 'DIANA_CXR3416_IM-1651-0001-0001'
-# image_name = 'DIANA_CXR728_IM-2287-1001'
+    ax = axs[0]
+    ax.imshow(image, cmap='gray')
+    ax.set_title(img_name)
+    ax.get_xaxis().set_ticks([])
+    ax.get_yaxis().set_ticks([])
+
+    ax = axs[1]
+    ax.imshow(image, cmap='gray')
+    for i in range(len(mask)):
+        if mask[i]:
+            ax.plot(x[i], y[i], 'o', color='hotpink')
+    # ax.set_title(img_name)
+    ax.get_xaxis().set_ticks([])
+    ax.get_yaxis().set_ticks([])
+
+    ax = axs[2]
+    ax.plot(x, y)
+    for i in range(len(mask)):
+        if mask[i]:
+            ax.plot(x[i], y[i], 'o', color='hotpink')
+    # ax.set_title(img_name)
+    ax.imshow(image, cmap='gray')
+    ax.get_xaxis().set_ticks([])
+    ax.get_yaxis().set_ticks([])
+
+    ax = axs[3]
+    baar = ax.bar(range(len(hist)), hist)
+    if isinstance(imp_features_idx.tolist(), int):
+        baar[imp_features_idx].set_color('hotpink')
+    else:
+        for imp in imp_features_idx:
+            baar[imp].set_color('hotpink')
+    # ax.bar(imp_features_idx, hist[imp_features_idx],)
+    conds = ['Cardio. ', 'Infilt. ', 'Nodule ', 'Normal ', 'PlurEff. ', 'Pneumtrx.']
+    cond_rad_lbl = np.where(rad_label == 1)[0]
+    cond_nih_lbl = np.where(nih_label == 1)[0]
+    tit = [conds[a] for a in cond_rad_lbl] + ['\n NIH:'] + [conds[a] for a in cond_nih_lbl]
+    img_title = 'Radiologist: ' + '-'.join(tit)
+    ax.set_title(img_title)
+    plt.show()
+    print()
+image_name = 'DIANA_CXR11_IM-0067-1001'
+image_name = 'DIANA_CXR3416_IM-1651-0001-0001'
+image_name = 'DIANA_CXR728_IM-2287-1001'
 image_name = 'CAROL_CXR3416_IM-1651-0001-0001'
+image_name = 'CAROL_CXR1028_IM-0022-1001'
+image_name = 'DIANA_CXR1136_IM-0092-1001'
 # percentile = np.argmax(cumsum_feat > 0.2)
-which_feature = 2  # up to number of clusters
-plot_box(img_hist_dict, feat_dict, image_name, imp_centers, imp_feat_idx, num=which_feature)
+which_feature = 499  # up to number of clusters
+plot_important_features(img_hist_dict, feat_dict, image_name, imp_centers, imp_feat_idx, num=which_feature, n_clusters=500)
+# plot_box(img_hist_dict, feat_dict, image_name, imp_centers, imp_feat_idx, num=302)
 
 
 print()
